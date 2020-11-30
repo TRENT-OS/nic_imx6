@@ -1,0 +1,60 @@
+/*
+ * Copyright 2020, Hensoldt Cyber GmbH
+ * Copyright 2019, Data61, CSIRO (ABN 41 687 119 230)
+ *
+ * SPDX-License-Identifier: BSD-2-Clause
+ */
+
+import <std_connector.camkes>;
+
+import <if_OS_Nic.camkes>;
+import <if_OS_Logger.camkes>;
+
+// platforms may have specific imports and components
+#include "plat/eth_devices.h"
+HARDWARE_ETHERNET_EXTRA_IMPORTS
+HARDWARE_ETHERNET_COMPONENT
+
+
+component NIC_IMX6 {
+
+    // We can't use the single_threaded_component() macro here, because there
+    // is a global components include quirk in BenchUtilz. It includes the
+    // global components TimeServer, which conflicts with our TimeServer
+    // implementation, that uses the same component name. Thus, we put the
+    // macro contents here.
+    control;
+    attribute int single_threaded = 1;
+    maybe consumes Trace trace_start;
+    maybe consumes Trace trace_stop;
+    // end of things from single_threaded_component()
+
+    provides if_OS_Nic client;
+
+    dataport         Buf(NIC_DRIVER_RINGBUFFER_SIZE) nic_port_to; /* driver -> network stack */
+    dataport         Buf                             nic_port_from; /* network stack -> driver */
+
+    emits EventDataAvailable nic_event_hasData;
+
+    // optional connection to the LogServer
+    maybe uses      if_OS_Logger            logServer_rpc;
+    maybe dataport  Buf                     logServer_dp;
+    maybe consumes  EventReady              logServer_event_ready;
+
+    // default attributes, can be overwritten to customize the driver
+    attribute int nic_promiscuous_mode = 1;
+    attribute int nic_skip_hardware_init = 0;
+    attribute int nic_id = 0;
+    attribute int nic_phy_address = 1;
+    attribute string MAC_address = "\x00\x00\x00\x00\x00\x00";
+
+    HARDWARE_ETHERNET_INTERFACES
+
+    composition {
+        HARDWARE_ETHERNET_COMPOSITION
+    }
+
+    configuration {
+        HARDWARE_ETHERNET_CONFIG
+    }
+};
