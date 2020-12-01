@@ -13,23 +13,26 @@ import <global-connectors.camkes>;
 #include <camkes-fdt-bind-driver.h>
 
 
+#define DTB_IMX6_PATH_ENET1 "/soc/aips-bus@2100000/ethernet@2188000"
+
+
 #define HARDWARE_ETHERNET_EXTRA_IMPORTS     /* nothing needed */
 #define HARDWARE_ETHERNET_COMPONENT         /* nothing needed */
 
 
-#define HARDWARE_ETHERNET_INTERFACES                                         \
-    consumes Dummy enet;                                                     \
-    consumes Dummy ocotp;                                                    \
-    consumes Dummy iomux;                                                    \
-    consumes Dummy iomux_gpr;                                                \
-    consumes Dummy ccm;                                                      \
-    consumes Dummy analog;                                                   \
-    consumes Dummy gpio2;                                                    \
-    consumes Dummy gpio3;                                                    \
-    consumes Dummy gpio5;                                                    \
-    consumes Dummy gpio6;                                                    \
-    emits    Dummy dummy_source;                                             \
-    fdt_bind_drivers_interfaces(["/soc/aips-bus@2100000/ethernet@2188000"]);
+#define HARDWARE_ETHERNET_INTERFACES                    \
+    consumes Dummy enet;                                \
+    consumes Dummy ocotp;                               \
+    consumes Dummy iomux;                               \
+    consumes Dummy iomux_gpr;                           \
+    consumes Dummy ccm;                                 \
+    consumes Dummy analog;                              \
+    consumes Dummy gpio2;                               \
+    consumes Dummy gpio3;                               \
+    consumes Dummy gpio5;                               \
+    consumes Dummy gpio6;                               \
+    emits    Dummy dummy_source;                        \
+    fdt_bind_drivers_interfaces([DTB_IMX6_PATH_ENET1]);
 
 
 #define DTB_ETH_HW_MAPPING_CONNECTION(_dst_)  \
@@ -53,7 +56,7 @@ import <global-connectors.camkes>;
 
 #define HARDWARE_ETHERNET_CONFIG                                              \
     enet.generate_interrupts = 1;                                             \
-    enet.dtb      = dtb({"path":"/soc/aips-bus@2100000/ethernet@2188000"});   \
+    enet.dtb      = dtb({"path":DTB_IMX6_PATH_ENET1});                        \
     ocotp.dtb     = dtb({"path":"/soc/aips-bus@2100000/ocotp@21bc000"});      \
     iomux.dtb     = dtb({"path":"/soc/aips-bus@2000000/iomuxc@20e0000"});     \
     iomux_gpr.dtb = dtb({"path":"/soc/aips-bus@2000000/iomuxc-gpr@20e4000"}); \
