@@ -32,7 +32,6 @@ typedef struct
 {
     dma_addr_t dma;
     int len;
-    int client;
 } rx_tx_frame;
 
 // Each client has a pool of TX frames
@@ -78,12 +77,6 @@ typedef struct
 
     /* mac address for this client */
     uint8_t mac[6];
-
-    /* Badge for this client */
-    seL4_Word client_id;
-
-    /* dataport for this client */
-    void* dataport;
 } client_t;
 
 
@@ -95,17 +88,6 @@ static client_t client_ctx;
 static unsigned int num_rx_bufs;
 static dma_addr_t rx_bufs[RX_BUFS];
 static dma_addr_t* rx_buf_pool[RX_BUFS];
-
-
-//------------------------------------------------------------------------------
-// Functions provided by the Ethdriver template
-void client_emit(unsigned int client_id);
-unsigned int client_get_sender_id(void);
-unsigned int client_num_badges(void);
-unsigned int client_enumerate_badge(unsigned int i);
-void* client_buf(unsigned int client_id);
-bool client_has_mac(unsigned int client_id);
-OS_Error_t client_get_mac(unsigned int client_id, uint8_t* mac);
 
 
 //------------------------------------------------------------------------------
@@ -159,7 +141,6 @@ static void eth_rx_complete(
         rx_frame_t* rx_frame = &client_ctx.pending_rx[client_ctx.pending_rx_head];
         rx_frame->dma        = *(dma_addr_t*)(cookies[0]);
         rx_frame->len        = lens[0];
-        rx_frame->client     = 0;
 
         client_ctx.pending_rx_head = (client_ctx.pending_rx_head + 1) % CLIENT_RX_BUFS;
         if (client_ctx.should_notify)
@@ -387,8 +368,7 @@ int server_init(
     }
 
     client_ctx.should_notify = true;
-    client_ctx.client_id = client_enumerate_badge(0);
-    client_ctx.dataport = client_buf(client_ctx.client_id);
+
     for (unsigned int i = 0; i < CLIENT_TX_BUFS; i++)
     {
         /* Note that the parameters "cached" and "alignment" of this helper
@@ -408,7 +388,6 @@ int server_init(
         tx_frame_t* tx_frame = &client_ctx.tx_mem[client_ctx.num_tx];
         tx_frame->dma = dma;
         tx_frame->len = DMA_BUF_SIZE;
-        tx_frame->client = 0;
         client_ctx.pending_tx[client_ctx.num_tx] = tx_frame;
         client_ctx.num_tx++;
     }
