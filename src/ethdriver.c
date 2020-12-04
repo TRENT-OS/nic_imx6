@@ -356,11 +356,14 @@ int server_init(
     /* preallocate buffers */
     for (unsigned int i = 0; i < RX_BUFS; i++)
     {
+        /* Note that the parameters "cached" and "alignment" of this helper
+         * function are in the opposite order than in ps_dma_alloc()
+         */
         dma_addr_t dma = dma_alloc_pin(
                             &(io_ops->dma_manager),
                             DMA_BUF_SIZE,
-                            4, // alignment
-                            1); // cached
+                            1, // cached
+                            4); // alignment
         if (!dma.phys) {
             ZF_LOGE("Failed to allocate DMA of size %zu for RX buffer #%d ",
                     DMA_BUF_SIZE, i);
@@ -378,11 +381,14 @@ int server_init(
     client_ctx.dataport = client_buf(client_ctx.client_id);
     for (unsigned int i = 0; i < CLIENT_TX_BUFS; i++)
     {
+        /* Note that the parameters "cached" and "alignment" of this helper
+         * function are in the opposite order than in ps_dma_alloc()
+         */
         dma_addr_t dma = dma_alloc_pin(
                             &(io_ops->dma_manager),
                             DMA_BUF_SIZE,
-                            4, // alignment
-                            1); // cached
+                            1, // cached
+                            4); // alignment
         if (!dma.phys) {
             ZF_LOGE("Failed to allocate DMA of size %zu for TX buffer #%d ",
                     DMA_BUF_SIZE, i);
