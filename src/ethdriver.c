@@ -94,6 +94,70 @@ typedef struct
 // global variables
 imx6_nic_ctx_t imx6_nic_ctx;
 
+//------------------------------------------------------------------------------
+// add DMA memory to RX pool
+static void add_to_rx_buf_pool(
+    imx6_nic_ctx_t* nic_ctx,
+    dma_addr_t* dma)
+{
+    assert(nic_ctx);
+    assert(dma);
+
+    unsigned int idx = nic_ctx->num_rx_bufs;
+    dma_addr_t* dma_slot = &nic_ctx->rx_bufs[idx];
+    *dma_slot = *dma;
+    nic_ctx->rx_buf_pool[idx] = dma_slot;
+    nic_ctx->num_rx_bufs++;
+}
+
+
+//------------------------------------------------------------------------------
+// add DMA memory to TX pool
+static void add_to_client_tx_buf_pool(
+    client_t* client,
+    dma_addr_t* dma)
+{
+    assert(client);
+    assert(dma);
+
+    unsigned int idx = client->num_tx;
+    tx_frame_t* tx_frame = &client->tx_mem[idx];
+    tx_frame->dma = *dma;
+    tx_frame->len = DMA_BUF_SIZE;
+    client->pending_tx[idx] = tx_frame;
+    client->num_tx++;
+}
+
+
+//------------------------------------------------------------------------------
+// get DMA memory to RX pool
+static dma_addr_t* get_from_rx_buf_pool(
+    imx6_nic_ctx_t* nic_ctx)
+{
+    assert(nic_ctx);
+
+    if (0 == nic_ctx->num_rx_bufs)
+    {
+        LOG_ERROR("Invalid number of buffers");
+        return NULL;
+    }
+
+    return nic_ctx->rx_buf_pool[--nic_ctx->num_rx_bufs];
+}
+
+
+//------------------------------------------------------------------------------
+// return DMA memory to RX pool
+static void return_to_rx_buf_pool(
+    imx6_nic_ctx_t* nic_ctx,
+    dma_addr_t* dma)
+{
+    assert(nic_ctx);
+    assert(dma);
+
+    nic_ctx->rx_buf_pool[nic_ctx->num_rx_bufs++] = dma;
+}
+
 
 //------------------------------------------------------------------------------
 static void eth_tx_complete(
@@ -116,14 +180,16 @@ static uintptr_t eth_allocate_rx_buf(
         LOG_ERROR("Requested size doesn't fit in buffer");
         return 0;
     }
-    if (imx6_nic_ctx.num_rx_bufs == 0)
+
+    dma_addr_t* dma = get_from_rx_buf_pool(&imx6_nic_ctx);
+    if (!dma)
     {
-        LOG_ERROR("Invalid number of buffers");
+        LOG_ERROR("DMA pool empty");
         return 0;
     }
-    imx6_nic_ctx.num_rx_bufs--;
-    *cookie = imx6_nic_ctx.rx_buf_pool[imx6_nic_ctx.num_rx_bufs];
-    return imx6_nic_ctx.rx_buf_pool[imx6_nic_ctx.num_rx_bufs]->phys;
+
+    *cookie = dma;
+    return dma->phys;
 }
 
 
@@ -162,8 +228,8 @@ static void eth_rx_complete(
     /* abort and put all the bufs back */
     for (unsigned int i = 0; i < num_bufs; i++)
     {
-        imx6_nic_ctx.rx_buf_pool[imx6_nic_ctx.num_rx_bufs] = (dma_addr_t*)(cookies[i]);
-        imx6_nic_ctx.num_rx_bufs++;
+        dma_addr_t* dma = (dma_addr_t*)(cookies[i]);
+        return_to_rx_buf_pool(&imx6_nic_ctx, dma);
     }
 }
 
@@ -223,8 +289,7 @@ client_rx_data(
     {
         *framesRemaining = 1;
     }
-    imx6_nic_ctx.rx_buf_pool[imx6_nic_ctx.num_rx_bufs] = &(rx->dma);
-    imx6_nic_ctx.num_rx_bufs++;
+    return_to_rx_buf_pool(&imx6_nic_ctx, &(rx->dma));
     return OS_SUCCESS;
 }
 
@@ -381,10 +446,7 @@ int server_init(
             return -1;
         }
         memset(dma.virt, 0, DMA_BUF_SIZE);
-        dma_addr_t* rx = &imx6_nic_ctx.rx_bufs[imx6_nic_ctx.num_rx_bufs];
-        *rx = dma;
-        imx6_nic_ctx.rx_buf_pool[imx6_nic_ctx.num_rx_bufs] = rx;
-        imx6_nic_ctx.num_rx_bufs++;
+        add_to_rx_buf_pool(&imx6_nic_ctx, &dma);
     }
 
     for (unsigned int i = 0; i < CLIENT_TX_BUFS; i++)
@@ -403,11 +465,7 @@ int server_init(
             return -1;
         }
         memset(dma.virt, 0, DMA_BUF_SIZE);
-        tx_frame_t* tx_frame = &client->tx_mem[client->num_tx];
-        tx_frame->dma = dma;
-        tx_frame->len = DMA_BUF_SIZE;
-        client->pending_tx[client->num_tx] = tx_frame;
-        client->num_tx++;
+        add_to_client_tx_buf_pool(client, &dma);
     }
 
     /* get MAC from hardware and remember it */
