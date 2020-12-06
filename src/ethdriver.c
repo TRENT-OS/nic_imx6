@@ -160,15 +160,6 @@ static void eth_rx_complete(
 
 
 //------------------------------------------------------------------------------
-static struct raw_iface_callbacks ethdriver_callbacks =
-{
-    .tx_complete = eth_tx_complete,
-    .rx_complete = eth_rx_complete,
-    .allocate_rx_buf = eth_allocate_rx_buf
-};
-
-
-//------------------------------------------------------------------------------
 /** If eth frames have been received by the driver, copy a single frame from
  * the driver's buffer (rx_bufs), into the dataport of the caller of this
  * function.
@@ -344,8 +335,16 @@ int server_init(
         return -1;
     }
 
+    static const struct raw_iface_callbacks ethdriver_callbacks = {
+        .tx_complete = eth_tx_complete,
+        .rx_complete = eth_rx_complete,
+        .allocate_rx_buf = eth_allocate_rx_buf
+    };
+
     eth_driver->cb_cookie = NULL;
     eth_driver->i_cb      = ethdriver_callbacks;
+
+    client_ctx.should_notify = true;
 
     /* preallocate buffers */
     for (unsigned int i = 0; i < RX_BUFS; i++)
@@ -369,8 +368,6 @@ int server_init(
         rx_buf_pool[num_rx_bufs] = rx;
         num_rx_bufs++;
     }
-
-    client_ctx.should_notify = true;
 
     for (unsigned int i = 0; i < CLIENT_TX_BUFS; i++)
     {
