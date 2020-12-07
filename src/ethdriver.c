@@ -715,6 +715,61 @@ int do_env_init(
 
 
 //------------------------------------------------------------------------------
+// These macros are from templates/seL4SingleThreadedComponent.template.h of
+// the global components. The function "ethdriver_run" is put in the section
+// "_post_init". On startup, the real pre_init() function iterates over the
+// elements in the sections _env_init, _pre_init and  _post_init and calls each
+// function.
+//
+// camkes.c:sem_init_done_wait()
+//
+// camkes.c:sem_init_done_trywait()
+//
+// camkes.c:sem_init_done_post()
+//
+// camkes.c:init_install_syscalls()
+//     camkes_install_syscalls()
+//
+// camkes.c:init()
+//     camkes_dma_init()
+//     camkes.c:semaphore_sem_init_done_init()
+//
+// camkes.c:post_main()
+//     Control thread:
+//         camkes.c:camkes_tls_init()
+//         camkes.environment.c:component_control_main()
+//             pre_init()
+//             camkes.c:pre_init_interface_sync()
+//                 post all sem266 // Wake all the non-passive interface threads
+//                 wait all sem267 // Wait for all non-passive interface threads to run their inits.
+//             post_init()
+//             camkes.c:post_init_interface_sync()
+//                 post sem268 // Wake all the interface threads, including passive threads.
+//             run()
+//         wait sem267
+//     Fault:
+//         wait sem266
+//         camkes.c:camkes_tls_init()
+//         camkes.c:fault_handler()
+//     RPC Interface threads:
+//         sync_sem_bare_wait(266) // Wait for `pre_init` to complete
+//         camkes.c:camkes_tls_init()
+//         <interface>__init()
+//         post sem267  // notify waiting pre_init_interface_sync()
+//         wait sem268  // Wait for post_init_interface_sync()
+//         <interface>__run()
+//         wait sem266
+//
+// camkes.c:main()
+//     post_main()
+//
+// camkes.c:_camkes_start_c()
+//     control tread:
+//         post_main()
+//     all others:
+//         sel4muslcsys_register_stdio_write_fn()
+//         camkes_start_control()
+//
 CAMKES_ENV_INIT_MODULE_DEFINE(ethdriver_do_env_init, do_env_init)
 CAMKES_PRE_INIT_MODULE_DEFINE(ethdriver_do_pre_init, do_pre_init)
 CAMKES_POST_INIT_MODULE_DEFINE(ethdriver_run, server_init);
