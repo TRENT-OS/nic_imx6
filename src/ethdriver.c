@@ -79,14 +79,20 @@ typedef struct
 } client_t;
 
 
+typedef struct
+{
+    bool done_init;
+    struct eth_driver* eth_driver;
+    unsigned int num_rx_bufs;
+    dma_addr_t rx_bufs[RX_BUFS];
+    dma_addr_t* rx_buf_pool[RX_BUFS];
+    client_t client;
+} imx6_nic_ctx_t;
+
+
 //------------------------------------------------------------------------------
 // global variables
-static bool done_init = false;
-static struct eth_driver* eth_driver;
-static client_t client_ctx;
-static unsigned int num_rx_bufs;
-static dma_addr_t rx_bufs[RX_BUFS];
-static dma_addr_t* rx_buf_pool[RX_BUFS];
+imx6_nic_ctx_t imx6_nic_ctx;
 
 
 //------------------------------------------------------------------------------
@@ -94,7 +100,8 @@ static void eth_tx_complete(
     void* iface,
     void* cookie)
 {
-    client_ctx.pending_tx[client_ctx.num_tx++] = (tx_frame_t*)cookie;
+    client_t* client = &imx6_nic_ctx.client;
+    client->pending_tx[client->num_tx++] = (tx_frame_t*)cookie;
 }
 
 
@@ -109,14 +116,14 @@ static uintptr_t eth_allocate_rx_buf(
         LOG_ERROR("Requested size doesn't fit in buffer");
         return 0;
     }
-    if (num_rx_bufs == 0)
+    if (imx6_nic_ctx.num_rx_bufs == 0)
     {
         LOG_ERROR("Invalid number of buffers");
         return 0;
     }
-    num_rx_bufs--;
-    *cookie = rx_buf_pool[num_rx_bufs];
-    return rx_buf_pool[num_rx_bufs]->phys;
+    imx6_nic_ctx.num_rx_bufs--;
+    *cookie = imx6_nic_ctx.rx_buf_pool[imx6_nic_ctx.num_rx_bufs];
+    return imx6_nic_ctx.rx_buf_pool[imx6_nic_ctx.num_rx_bufs]->phys;
 }
 
 
@@ -127,25 +134,27 @@ static void eth_rx_complete(
     void** cookies,
     unsigned int* lens)
 {
+    client_t* client = &imx6_nic_ctx.client;
+
     if (num_bufs != 1)
     {
         LOG_ERROR("Trying to write %d buffers, can only do one", num_bufs);
     }
-    else if ((client_ctx.pending_rx_head + 1) % CLIENT_RX_BUFS == client_ctx.pending_rx_tail)
+    else if ((client->pending_rx_head + 1) % CLIENT_RX_BUFS == client->pending_rx_tail)
     {
         LOG_ERROR("RX buffer overflow");
     }
     else
     {
-        rx_frame_t* rx_frame = &client_ctx.pending_rx[client_ctx.pending_rx_head];
+        rx_frame_t* rx_frame = &client->pending_rx[client->pending_rx_head];
         rx_frame->dma        = *(dma_addr_t*)(cookies[0]);
         rx_frame->len        = lens[0];
 
-        client_ctx.pending_rx_head = (client_ctx.pending_rx_head + 1) % CLIENT_RX_BUFS;
-        if (client_ctx.should_notify)
+        client->pending_rx_head = (client->pending_rx_head + 1) % CLIENT_RX_BUFS;
+        if (client->should_notify)
         {
             nic_event_hasData_emit();
-            client_ctx.should_notify = false;
+            client->should_notify = false;
         }
         return;
     }
@@ -153,8 +162,8 @@ static void eth_rx_complete(
     /* abort and put all the bufs back */
     for (unsigned int i = 0; i < num_bufs; i++)
     {
-        rx_buf_pool[num_rx_bufs] = (dma_addr_t*)(cookies[i]);
-        num_rx_bufs++;
+        imx6_nic_ctx.rx_buf_pool[imx6_nic_ctx.num_rx_bufs] = (dma_addr_t*)(cookies[i]);
+        imx6_nic_ctx.num_rx_bufs++;
     }
 }
 
@@ -178,23 +187,24 @@ client_rx_data(
     size_t* pLen,
     size_t* framesRemaining)
 {
-    if (!done_init)
+    if (!imx6_nic_ctx.done_init)
     {
         LOG_ERROR("Device not initialized");
         return OS_ERROR_NOT_INITIALIZED;
     }
 
-    if (client_ctx.pending_rx_head == client_ctx.pending_rx_tail)
+    client_t* client = &imx6_nic_ctx.client;
+    if (client->pending_rx_head == client->pending_rx_tail)
     {
         // Ideally, the network stack does not poll the driver and we end up
         // here only in very few cases. Practically, we see this message a lot
         // and this pollutes the logs. This needs further investigation, until
         // then we don't print anything here.
         //   LOG_INFO("no RX data, client should wait for notification");
-        client_ctx.should_notify = true;
+        client->should_notify = true;
         return OS_ERROR_NO_DATA;
     }
-    rx_frame_t* rx = &client_ctx.pending_rx[client_ctx.pending_rx_tail];
+    rx_frame_t* rx = &client->pending_rx[client->pending_rx_tail];
 
     /* ToDo: Instead of copying the DMA buffer into the shared dataport memory,
      *       we should share the ring buffer elements with the network stack to
@@ -203,18 +213,18 @@ client_rx_data(
     memcpy(nic_port_to, rx->dma.virt, rx->len);
     *pLen = rx->len;
 
-    client_ctx.pending_rx_tail = (client_ctx.pending_rx_tail + 1) % CLIENT_RX_BUFS;
-    if (client_ctx.pending_rx_tail == client_ctx.pending_rx_head)
+    client->pending_rx_tail = (client->pending_rx_tail + 1) % CLIENT_RX_BUFS;
+    if (client->pending_rx_tail == client->pending_rx_head)
     {
-        client_ctx.should_notify = true;
+        client->should_notify = true;
         *framesRemaining = 0;
     }
     else
     {
         *framesRemaining = 1;
     }
-    rx_buf_pool[num_rx_bufs] = &(rx->dma);
-    num_rx_bufs++;
+    imx6_nic_ctx.rx_buf_pool[imx6_nic_ctx.num_rx_bufs] = &(rx->dma);
+    imx6_nic_ctx.num_rx_bufs++;
     return OS_SUCCESS;
 }
 
@@ -230,7 +240,7 @@ client_rx_data(
  */
 OS_Error_t client_tx_data(size_t * pLen)
 {
-    if (!done_init)
+    if (!imx6_nic_ctx.done_init)
     {
         LOG_ERROR("Device not initialized");
         return OS_ERROR_NOT_INITIALIZED;
@@ -250,15 +260,18 @@ OS_Error_t client_tx_data(size_t * pLen)
         len = DMA_BUF_SIZE;
     }
 
+    struct eth_driver* eth_driver = imx6_nic_ctx.eth_driver;
+    client_t* client = &imx6_nic_ctx.client;
+
     /* drop packet if TX queue is full */
-    if (0 == client_ctx.num_tx)
+    if (0 == client->num_tx)
     {
         LOG_ERROR("TX queue is full, dropping packet");
         return OS_ERROR_GENERIC;
     }
 
-    client_ctx.num_tx--;
-    tx_frame_t* tx_buf = client_ctx.pending_tx[client_ctx.num_tx];
+    client->num_tx--;
+    tx_frame_t* tx_buf = client->pending_tx[client->num_tx];
 
     /* copy the packet over */
     memcpy(tx_buf->dma.virt, nic_port_from, len);
@@ -266,22 +279,23 @@ OS_Error_t client_tx_data(size_t * pLen)
     /* set source MAC */
     memcpy(
         &((char*)tx_buf->dma.virt)[6],
-        client_ctx.mac,
-        sizeof(client_ctx.mac));
+        client->mac,
+        sizeof(client->mac));
 
     /* queue up transmit */
+
     int err = eth_driver->i_fn.raw_tx(
-        eth_driver,
-        1,
-        (uintptr_t*)&(tx_buf->dma.phys),
-        (unsigned int*)&len,
-        tx_buf);
+                eth_driver,
+                1,
+                (uintptr_t*)&(tx_buf->dma.phys),
+                (unsigned int*)&len,
+                tx_buf);
 
     if (ETHIF_TX_ENQUEUED != err)
     {
         /* TX failed, free internal TX buffer. Client my retry transmission */
         LOG_ERROR("Failed to enqueue tx packet, code %d", err);
-        client_ctx.num_tx++;
+        client->num_tx++;
         return OS_ERROR_GENERIC;
     }
 
@@ -294,7 +308,8 @@ OS_Error_t client_tx_data(size_t * pLen)
 OS_Error_t
 client_get_mac_address(void)
 {
-    memcpy((uint8_t*)nic_port_to, client_ctx.mac, sizeof(client_ctx.mac));
+    client_t* client = &imx6_nic_ctx.client;
+    memcpy((uint8_t*)nic_port_to, client->mac, sizeof(client->mac));
     return OS_SUCCESS;
 }
 
@@ -305,7 +320,7 @@ static int hardware_interface_searcher(
     void*  interface_instance,
     char** properties)
 {
-    eth_driver = interface_instance;
+    imx6_nic_ctx.eth_driver = interface_instance;
     return PS_INTERFACE_FOUND_MATCH;
 }
 
@@ -335,6 +350,8 @@ int server_init(
         return -1;
     }
 
+    struct eth_driver* eth_driver = imx6_nic_ctx.eth_driver;
+
     static const struct raw_iface_callbacks ethdriver_callbacks = {
         .tx_complete = eth_tx_complete,
         .rx_complete = eth_rx_complete,
@@ -344,7 +361,8 @@ int server_init(
     eth_driver->cb_cookie = NULL;
     eth_driver->i_cb      = ethdriver_callbacks;
 
-    client_ctx.should_notify = true;
+    client_t* client = &imx6_nic_ctx.client;
+    client->should_notify = true;
 
     /* preallocate buffers */
     for (unsigned int i = 0; i < RX_BUFS; i++)
@@ -363,10 +381,10 @@ int server_init(
             return -1;
         }
         memset(dma.virt, 0, DMA_BUF_SIZE);
-        dma_addr_t* rx = &rx_bufs[num_rx_bufs];
+        dma_addr_t* rx = &imx6_nic_ctx.rx_bufs[imx6_nic_ctx.num_rx_bufs];
         *rx = dma;
-        rx_buf_pool[num_rx_bufs] = rx;
-        num_rx_bufs++;
+        imx6_nic_ctx.rx_buf_pool[imx6_nic_ctx.num_rx_bufs] = rx;
+        imx6_nic_ctx.num_rx_bufs++;
     }
 
     for (unsigned int i = 0; i < CLIENT_TX_BUFS; i++)
@@ -385,24 +403,36 @@ int server_init(
             return -1;
         }
         memset(dma.virt, 0, DMA_BUF_SIZE);
-        tx_frame_t* tx_frame = &client_ctx.tx_mem[client_ctx.num_tx];
+        tx_frame_t* tx_frame = &client->tx_mem[client->num_tx];
         tx_frame->dma = dma;
         tx_frame->len = DMA_BUF_SIZE;
-        client_ctx.pending_tx[client_ctx.num_tx] = tx_frame;
-        client_ctx.num_tx++;
+        client->pending_tx[client->num_tx] = tx_frame;
+        client->num_tx++;
     }
 
     /* get MAC from hardware and remember it */
     uint8_t hw_mac[6];
     eth_driver->i_fn.get_mac(eth_driver, hw_mac);
-    memcpy(client_ctx.mac, hw_mac, sizeof(client_ctx.mac));
+    memcpy(client->mac, hw_mac, sizeof(client->mac));
 
     eth_driver->i_fn.raw_poll(eth_driver);
 
-    done_init = true;
+    imx6_nic_ctx.done_init = true;
+
     return 0;
 }
 
 
 //------------------------------------------------------------------------------
+// this is called when the CAmkES component starts
+int do_env_init(
+    ps_io_ops_t* io_ops)
+{
+    memset(&imx6_nic_ctx, 0, sizeof(imx6_nic_ctx));
+    return 0;
+}
+
+
+//------------------------------------------------------------------------------
+CAMKES_ENV_INIT_MODULE_DEFINE(ethdriver_do_env_init, do_env_init)
 CAMKES_POST_INIT_MODULE_DEFINE(ethdriver_run, server_init);
