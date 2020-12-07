@@ -336,9 +336,19 @@ static int hardware_interface_searcher(
 
 
 //------------------------------------------------------------------------------
+// Module initialization
+//------------------------------------------------------------------------------
+
+// We registered this function via the macro CAMKES_POST_INIT_MODULE_DEFINE(),
+// but actually it's called as the last thing in the CAmkES pre_init() handler
+// implemented by seL4SingleThreadedComponent.template.c function. This means
+// we cannot do much interaction with other components here.
 int server_init(
     ps_io_ops_t* io_ops)
 {
+    /* this eventually calls hardware_interface_searcher(), which will then
+     * initialize eth_driver
+     */
     int error = ps_interface_find(
         &io_ops->interface_registration_ops,
         PS_ETHERNET_INTERFACE,
