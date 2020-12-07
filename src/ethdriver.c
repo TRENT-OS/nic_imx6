@@ -392,6 +392,8 @@ client_get_mac_address(void)
 }
 
 
+// #ifdef CONFIG_PLAT_NITROGEN6SX
+
 #ifdef IMX6_PRIMARY_NIC
 
 // address of the PHY for the 2nd ethernet port is 5. This is something the
@@ -491,6 +493,7 @@ int call_primary_nic_mdio_write(uint16_t reg, uint16_t data)
 
 #endif // [not] IMX6_PRIMARY_NIC
 
+// #endif // CONFIG_PLAT_NITROGEN6SX
 
 //------------------------------------------------------------------------------
 const nic_config_t*
