@@ -23,10 +23,11 @@
 #include <ethdrivers/plat/eth_plat.h>
 #include <sel4utils/sel4_zf_logif.h>
 
-#define RX_BUFS          256
-#define CLIENT_RX_BUFS   128
-#define CLIENT_TX_BUFS   128
-#define DMA_BUF_SIZE    2048
+#define RX_BUFS          256 // CONFIG_LIB_ETHDRIVER_NUM_PREALLOCATED_BUFFERS ?
+#define CLIENT_RX_BUFS   128 // CONFIG_LIB_ETHDRIVER_RX_DESC_COUNT ?
+#define CLIENT_TX_BUFS   128 // CONFIG_LIB_ETHDRIVER_TX_DESC_COUNT ?
+
+#define DMA_BUF_SIZE    2048 // LIB_ETHDRIVER_PREALLOCATED_BUF_SIZE ?
 
 typedef struct
 {
@@ -94,6 +95,17 @@ typedef struct
 //------------------------------------------------------------------------------
 // global variables
 imx6_nic_ctx_t imx6_nic_ctx;
+
+
+//------------------------------------------------------------------------------
+void udelay(uint32_t us){
+    volatile int i;
+    for(; us > 0; us--){
+        for(i = 0; i < 100; i++){
+        }
+    }
+}
+
 
 //------------------------------------------------------------------------------
 // add DMA memory to RX pool
