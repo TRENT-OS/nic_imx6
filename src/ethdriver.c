@@ -106,12 +106,12 @@ static uintptr_t eth_allocate_rx_buf(
 {
     if (buf_size > DMA_BUF_SIZE)
     {
-        ZF_LOGE("Requested size doesn't fit in buffer");
+        LOG_ERROR("Requested size doesn't fit in buffer");
         return 0;
     }
     if (num_rx_bufs == 0)
     {
-        ZF_LOGE("Invalid number of buffers");
+        LOG_ERROR("Invalid number of buffers");
         return 0;
     }
     num_rx_bufs--;
@@ -129,11 +129,11 @@ static void eth_rx_complete(
 {
     if (num_bufs != 1)
     {
-        ZF_LOGE("Trying to write %d buffers, can only do one", num_bufs);
+        LOG_ERROR("Trying to write %d buffers, can only do one", num_bufs);
     }
     else if ((client_ctx.pending_rx_head + 1) % CLIENT_RX_BUFS == client_ctx.pending_rx_tail)
     {
-        ZF_LOGE("RX buffer overflow");
+        LOG_ERROR("RX buffer overflow");
     }
     else
     {
@@ -189,13 +189,13 @@ client_rx_data(
 {
     if (!done_init)
     {
-        ZF_LOGE("Device not initialized");
+        LOG_ERROR("Device not initialized");
         return OS_ERROR_NOT_INITIALIZED;
     }
 
     if (client_ctx.pending_rx_head == client_ctx.pending_rx_tail)
     {
-        ZF_LOGI("no RX data, client should wait for notification");
+        LOG_INFO("no RX data, client should wait for notification");
         client_ctx.should_notify = true;
         return OS_ERROR_NO_DATA;
     }
@@ -237,7 +237,7 @@ OS_Error_t client_tx_data(size_t * pLen)
 {
     if (!done_init)
     {
-        ZF_LOGE("Device not initialized");
+        LOG_ERROR("Device not initialized");
         return OS_ERROR_NOT_INITIALIZED;
     }
 
@@ -258,7 +258,7 @@ OS_Error_t client_tx_data(size_t * pLen)
     /* drop packet if TX queue is full */
     if (0 == client_ctx.num_tx)
     {
-        ZF_LOGE("TX queue is full, dropping packet");
+        LOG_ERROR("TX queue is full, dropping packet");
         return OS_ERROR_GENERIC;
     }
 
@@ -285,7 +285,7 @@ OS_Error_t client_tx_data(size_t * pLen)
     if (ETHIF_TX_ENQUEUED != err)
     {
         /* TX failed, free internal TX buffer. Client my retry transmission */
-        ZF_LOGE("Failed to enqueue tx packet, code %d", err);
+        LOG_ERROR("Failed to enqueue tx packet, code %d", err);
         client_ctx.num_tx++;
         return OS_ERROR_GENERIC;
     }
@@ -336,7 +336,7 @@ int server_init(
         NULL);
     if (error)
     {
-        ZF_LOGE("Unable to find an ethernet device, code %d", error);
+        LOG_ERROR("Unable to find an ethernet device, code %d", error);
         return -1;
     }
 
@@ -355,7 +355,7 @@ int server_init(
                             1, // cached
                             4); // alignment
         if (!dma.phys) {
-            ZF_LOGE("Failed to allocate DMA of size %zu for RX buffer #%d ",
+            LOG_ERROR("Failed to allocate DMA of size %zu for RX buffer #%d ",
                     DMA_BUF_SIZE, i);
             return -1;
         }
@@ -379,7 +379,7 @@ int server_init(
                             1, // cached
                             4); // alignment
         if (!dma.phys) {
-            ZF_LOGE("Failed to allocate DMA of size %zu for TX buffer #%d ",
+            LOG_ERROR("Failed to allocate DMA of size %zu for TX buffer #%d ",
                     DMA_BUF_SIZE, i);
             return -1;
         }
