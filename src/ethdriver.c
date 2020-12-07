@@ -195,7 +195,11 @@ client_rx_data(
 
     if (client_ctx.pending_rx_head == client_ctx.pending_rx_tail)
     {
-        LOG_INFO("no RX data, client should wait for notification");
+        // Ideally, the network stack does not poll the driver and we end up
+        // here only in very few cases. Practically, we see this message a lot
+        // and this pollutes the logs. This needs further investigation, until
+        // then we don't print anything here.
+        //   LOG_INFO("no RX data, client should wait for notification");
         client_ctx.should_notify = true;
         return OS_ERROR_NO_DATA;
     }
