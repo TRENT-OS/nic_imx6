@@ -16,6 +16,10 @@ import <global-connectors.camkes>;
 #define DTB_IMX6_PATH_ENET1 "/soc/aips-bus@2100000/ethernet@2188000"
 
 
+#define NIC_IMX6_INSTANCE(_nic_) \
+    component NIC_IMX6 _nic_;
+
+
 #define HARDWARE_ETHERNET_EXTRA_IMPORTS     /* nothing needed */
 #define HARDWARE_ETHERNET_COMPONENT         /* nothing needed */
 
@@ -66,3 +70,12 @@ import <global-connectors.camkes>;
     gpio3.dtb     = dtb({"path":"/soc/aips-bus@2000000/gpio@20a4000"});       \
     gpio5.dtb     = dtb({"path":"/soc/aips-bus@2000000/gpio@20ac000"});       \
     gpio6.dtb     = dtb({"path":"/soc/aips-bus@2000000/gpio@20b0000"});
+
+
+//------------------------------------------------------------------------------
+// default attributes, can be overwritten to customize the driver
+#define HARDWARE_ETHERNET_ATTRIBUTES                                     \
+    attribute int    nic_promiscuous_mode = 1;                           \
+    attribute int    nic_id               = 0;                           \
+    attribute int    nic_phy_address      = 0;                           \
+    attribute string MAC_address          = "\x00\x00\x00\x00\x00\x00";

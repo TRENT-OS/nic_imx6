@@ -1,0 +1,191 @@
+/*
+ * Copyright 2020, Hensoldt Cyber GmbH
+ * Copyright 2019, Data61, CSIRO (ABN 41 687 119 230)
+ *
+ * SPDX-License-Identifier: GPL2.0+
+ */
+
+#pragma once
+
+import <std_connector.camkes>;
+import <global-connectors.camkes>;
+
+#include <camkes-fdt-bind-driver.h>
+
+//------------------------------------------------------------------------------
+#define DTB_IMX6_PATH_ENET1     "/soc/aips-bus@2100000/ethernet@2188000"
+#define DTB_IMX6_PATH_ENET2     "/soc/aips-bus@2100000/ethernet@21b4000"
+
+
+//------------------------------------------------------------------------------
+// this is an internal RPC interface provided by NIC1 for NIC2
+procedure if_imx6_primary_nic {
+    include "OS_Error.h";
+    int sync();
+    int mdio_read(in uint16_t reg);
+    int mdio_write(in uint16_t reg, in uint16_t data);
+};
+
+
+//------------------------------------------------------------------------------
+// We can't really use port 2 without port 1, because the ENET1 contains the
+// MDIO interface for both PHYs. So MDIO access of the NIC2 driver happens via
+// RPC to the NIC1 driver. The macro NIC_IMX6_INSTANCE() uses some preprocessor
+// magic to call different macros depending on the number of arguments.
+
+#define GET_MACRO(_1, _2, NAME, ...) NAME
+
+#define NIC_IMX6_INSTANCE(...)           \
+    GET_MACRO(                           \
+        __VA_ARGS__,                     \
+        NIC_IMX6_INSTANCES_FOR_2_PORTS,  \
+        NIC_IMX6_INSTANCE_FOR_1_PORTS    \
+    )(__VA_ARGS__)
+
+#define NIC_IMX6_INSTANCE_FOR_1_PORTS(_nic1_) \
+    component NIC_IMX6 _nic1_;
+
+#define NIC_IMX6_INSTANCES_FOR_2_PORTS(_nic1_, _nic2_) \
+    component NIC_IMX6        _nic1_; \
+    component NIC_IMX6_port2  _nic2_; \
+    \
+    connection seL4RPCCall imx6_nic_rpc( \
+        from _nic2_.primary_nic_rpc, \
+        to _nic1_.primary_nic);
+
+
+//------------------------------------------------------------------------------
+#define HARDWARE_ETHERNET_EXTRA_IMPORTS     /* nothing needed */
+
+
+//------------------------------------------------------------------------------
+#define HARDWARE_ETHERNET_COMPONENT         /* nothing needed */
+
+
+//------------------------------------------------------------------------------
+#define INTERNAL_HARDWARE_ETHERNET_INTERFACES(_n_)            \
+    consumes Dummy enet_##_n_;                                \
+    consumes Dummy mdio_##_n_;                                \
+    consumes Dummy ocotp_##_n_;                               \
+    consumes Dummy iomux_##_n_;                               \
+    consumes Dummy iomux_gpr_##_n_;                           \
+    consumes Dummy ccm_##_n_;                                 \
+    consumes Dummy analog_##_n_;                              \
+    consumes Dummy gpio2_##_n_;                               \
+    consumes Dummy gpio3_##_n_;                               \
+    consumes Dummy gpio5_##_n_;                               \
+    consumes Dummy gpio6_##_n_;                               \
+    emits    Dummy dummy_source;                              \
+    fdt_bind_drivers_interfaces([DTB_IMX6_PATH_ENET ## _n_]);
+
+
+// Even if we build a system that uses only one port, the NIC1 driver will
+// always provide a RPC interface (which NIC2 uses). Since the NIC1 component
+// definition does not really know if there is a NIC2 or not, and since we
+// don't have any global parameter that we can check, NIC1 always provides the
+// RPC interface. CAmkES allows interfaces to be left unconnected, so this is
+// no problem.
+#define HARDWARE_ETHERNET_INTERFACES \
+    provides if_imx6_primary_nic primary_nic; \
+    INTERNAL_HARDWARE_ETHERNET_INTERFACES(1)
+
+
+//------------------------------------------------------------------------------
+#define DTB_HW_MAPPING_CONNECTION(_n_, _dst_)  \
+    connection seL4DTBHardwareThreadless conn_port ## _n_ ## _ ## _dst_( \
+        from dummy_source, \
+        to   _dst_## _ ## _n_)
+
+#define INTERNAL_HARDWARE_ETHERNET_COMPOSITION(_n_) \
+    DTB_HW_MAPPING_CONNECTION(_n_, enet);           \
+    DTB_HW_MAPPING_CONNECTION(_n_, mdio);           \
+    DTB_HW_MAPPING_CONNECTION(_n_, ocotp);          \
+    DTB_HW_MAPPING_CONNECTION(_n_, iomux);          \
+    DTB_HW_MAPPING_CONNECTION(_n_, iomux_gpr);      \
+    DTB_HW_MAPPING_CONNECTION(_n_, ccm);            \
+    DTB_HW_MAPPING_CONNECTION(_n_, analog);         \
+    DTB_HW_MAPPING_CONNECTION(_n_, gpio2);          \
+    DTB_HW_MAPPING_CONNECTION(_n_, gpio3);          \
+    DTB_HW_MAPPING_CONNECTION(_n_, gpio5);          \
+    DTB_HW_MAPPING_CONNECTION(_n_, gpio6);          \
+    fdt_bind_driver_connections();
+
+#define HARDWARE_ETHERNET_COMPOSITION \
+    INTERNAL_HARDWARE_ETHERNET_COMPOSITION(1)
+
+
+//------------------------------------------------------------------------------
+#define INTERNAL_HARDWARE_ETHERNET_CONFIG(_enet_, _mdio_, _n_)                       \
+    enet_##_n_.generate_interrupts = 1;                                              \
+    enet_##_n_.dtb       = dtb({"path":_enet_});                                     \
+    mdio_##_n_.dtb       = dtb({"path":_mdio_});                                     \
+    ocotp_##_n_.dtb      = dtb({"path":"/soc/aips-bus@2100000/ocotp@21bc000"});      \
+    iomux_##_n_.dtb      = dtb({"path":"/soc/aips-bus@2000000/iomuxc@20e0000"});     \
+    iomux_gpr_##_n_.dtb  = dtb({"path":"/soc/aips-bus@2000000/iomuxc-gpr@20e4000"}); \
+    ccm_##_n_.dtb        = dtb({"path":"/soc/aips-bus@2000000/ccm@20c4000"});        \
+    analog_##_n_.dtb     = dtb({"path":"/soc/aips-bus@2000000/anatop@20c8000"});     \
+    gpio2_##_n_.dtb      = dtb({"path":"/soc/aips-bus@2000000/gpio@20a0000"});       \
+    gpio3_##_n_.dtb      = dtb({"path":"/soc/aips-bus@2000000/gpio@20a4000"});       \
+    gpio5_##_n_.dtb      = dtb({"path":"/soc/aips-bus@2000000/gpio@20ac000"});       \
+    gpio6_##_n_.dtb      = dtb({"path":"/soc/aips-bus@2000000/gpio@20b0000"});
+
+#define HARDWARE_ETHERNET_CONFIG \
+    INTERNAL_HARDWARE_ETHERNET_CONFIG(DTB_IMX6_PATH_ENET1, DTB_IMX6_PATH_ENET1, 1)
+
+
+//------------------------------------------------------------------------------
+// default attributes, can be overwritten to customize the driver
+#define INTERNAL_HARDWARE_ETHERNET_ATTRIBUTES(_id_, _phy_addr_)         \
+    attribute int    nic_promiscuous_mode = 1;                          \
+    attribute int    nic_id               = _id_;                       \
+    attribute int    nic_phy_address      = _phy_addr_;                 \
+    attribute string MAC_address          = "\x00\x00\x00\x00\x00\x00";
+
+
+#define HARDWARE_ETHERNET_ATTRIBUTES \
+    INTERNAL_HARDWARE_ETHERNET_ATTRIBUTES(0, 4)
+
+
+//------------------------------------------------------------------------------
+component NIC_IMX6_port2 {
+
+    // We can't use the single_threaded_component() macro here, because there
+    // is a global components include quirk in BenchUtilz. It includes the
+    // global components TimeServer, which conflicts with our TimeServer
+    // implementation, that uses the same component name. Thus, we put the
+    // macro contents here.
+    control;
+    attribute int single_threaded = 1;
+    maybe consumes Trace trace_start;
+    maybe consumes Trace trace_stop;
+    // end of things from single_threaded_component()
+
+    provides if_OS_Nic client;
+
+    dataport Buf(NIC_DRIVER_RINGBUFFER_SIZE) nic_port_to; /* driver -> network stack */
+    dataport Buf                             nic_port_from; /* network stack -> driver */
+
+    emits EventDataAvailable nic_event_hasData;
+
+    uses if_imx6_primary_nic primary_nic_rpc;
+
+    // optional connection to the LogServer
+    maybe uses      if_OS_Logger  logServer_rpc;
+    maybe dataport  Buf           logServer_dp;
+    maybe consumes  EventReady    logServer_event_ready;
+
+    INTERNAL_HARDWARE_ETHERNET_ATTRIBUTES(1, 5)
+
+    INTERNAL_HARDWARE_ETHERNET_INTERFACES(2)
+
+    composition {
+        INTERNAL_HARDWARE_ETHERNET_COMPOSITION(2)
+    }
+
+    configuration {
+        INTERNAL_HARDWARE_ETHERNET_CONFIG(
+            DTB_IMX6_PATH_ENET2,
+            DTB_IMX6_PATH_ENET1,
+            2)
+    }
+};

@@ -20,6 +20,7 @@
 #include <platsupport/irq.h>
 #include <ethdrivers/raw.h>
 #include <ethdrivers/helpers.h>
+#include <ethdrivers/plat/eth_plat.h>
 #include <sel4utils/sel4_zf_logif.h>
 
 #define RX_BUFS          256
@@ -112,7 +113,7 @@ static void add_to_rx_buf_pool(
 
 
 //------------------------------------------------------------------------------
-// add DMA memory to TX pool
+// add DMA memory from TX pool
 static void add_to_client_tx_buf_pool(
     client_t* client,
     dma_addr_t* dma)
@@ -130,7 +131,7 @@ static void add_to_client_tx_buf_pool(
 
 
 //------------------------------------------------------------------------------
-// get DMA memory to RX pool
+// get DMA memory from RX pool
 static dma_addr_t* get_from_rx_buf_pool(
     imx6_nic_ctx_t* nic_ctx)
 {
@@ -376,6 +377,138 @@ client_get_mac_address(void)
     client_t* client = &imx6_nic_ctx.client;
     memcpy((uint8_t*)nic_port_to, client->mac, sizeof(client->mac));
     return OS_SUCCESS;
+}
+
+
+#ifdef IMX6_PRIMARY_NIC
+
+// address of the PHY for the 2nd ethernet port is 5. This is something the
+// driver could change as any address can be used. But the convention on the
+// Nitrogen6_SoloX board seems to be that 5 is used here. Thus we don't allow
+// the driver for the second port to specify this values, it's hard-coded here.
+#define IMX6_ENET2_PHY_ADDR     5
+
+//------------------------------------------------------------------------------
+// RPC interface for secondary NIC driver
+void primary_nic__init(void)
+{
+    // nothing to be done to initialize the interface
+}
+
+
+//------------------------------------------------------------------------------
+// RPC interface for secondary NIC driver
+int primary_nic_sync(void)
+{
+    // nothing to be done here, CAmkES guarantees that RPCs are blocked until we
+    // have completed server_init(). The secondary NIC will use this function
+    // to sync with us and it must be prepared that this RPC call blocks until
+    // we are done. It may block forever if there was an initialization error.
+
+    if (!imx6_nic_ctx.done_init)
+    {
+        LOG_ERROR("Driver init failed, RPCs will be rejected");
+        return -1;
+    }
+
+    return 0;
+}
+
+
+//------------------------------------------------------------------------------
+// RPC interface for secondary NIC driver
+int primary_nic_mdio_read(uint16_t reg)
+{
+    // printf("RPC: MDIO read reg=0x%x, data=0x%x\n", reg);
+
+    if (!imx6_nic_ctx.done_init)
+    {
+        LOG_ERROR("Driver init failed, reject MDIO read access RPC");
+        return -1;
+    }
+
+    struct enet *enet = get_enet_from_driver(imx6_nic_ctx.eth_driver);
+    assert(enet); // this must be set  if init way successful
+
+    return enet_mdio_read(enet, IMX6_ENET2_PHY_ADDR, reg);
+}
+
+//------------------------------------------------------------------------------
+// RPC interface for secondary NIC driver
+int primary_nic_mdio_write(uint16_t reg, uint16_t data)
+{
+    // ensure RPC calls are serialized properly, we can only handle them when
+    // the semaphore is available, which is after we have finished out init.
+
+    if (!imx6_nic_ctx.done_init)
+    {
+        LOG_ERROR("Driver init failed, reject MDIO read access RPC");
+        return -1;
+    }
+
+    struct enet *enet = get_enet_from_driver(imx6_nic_ctx.eth_driver);
+    assert(enet); // this must be set  if init way successful
+
+    return enet_mdio_write(enet, IMX6_ENET2_PHY_ADDR, reg, data);
+}
+
+#else // not IMX6_PRIMARY_NIC
+
+//------------------------------------------------------------------------------
+int call_primary_nic_sync(void)
+{
+    // call CAmkES function, will block until the primary NIC is up.
+    return primary_nic_rpc_sync();
+}
+
+
+//------------------------------------------------------------------------------
+int call_primary_nic_mdio_read(uint16_t reg)
+{
+    // call CAmkES function to make primary NIC driver send the MDIO command
+    return primary_nic_rpc_mdio_read(reg);
+}
+
+
+//------------------------------------------------------------------------------
+int call_primary_nic_mdio_write(uint16_t reg, uint16_t data)
+{
+    // call CAmkES function to make primary NIC driver send the MDIO command
+    return primary_nic_rpc_mdio_write(reg, data);
+}
+
+#endif // [not] IMX6_PRIMARY_NIC
+
+
+//------------------------------------------------------------------------------
+const nic_config_t*
+get_nic_configuration(void)
+{
+    LOG_INFO("[i.MX6 NIC Driver '%s'] get_nic_configuration()", get_instance_name());
+
+    static nic_config_t nic_config = {0};
+    // CAmkES attributes aren't constant expressions and we can't
+    // initialize the struct using a list initializer. As a workaround
+    // we set the values here.
+
+    /* For the 2nd ethernet port, the PHY address is ignored actually, because
+     * it is not used in the RPC call. Instead, it's hard-coded above that this
+     * is always 5.
+     */
+    nic_config.phy_address        = nic_phy_address;
+    nic_config.promiscuous_mode   = nic_promiscuous_mode;
+    nic_config.id                 = nic_id;
+    memcpy(nic_config.mac, MAC_address, sizeof(nic_config.mac));
+
+#ifndef IMX6_PRIMARY_NIC
+
+    nic_config.funcs.sync       = call_primary_nic_sync;
+    nic_config.funcs.mdio_read  = call_primary_nic_mdio_read;
+    nic_config.funcs.mdio_write = call_primary_nic_mdio_write;
+
+#endif
+
+    return &nic_config;
 }
 
 

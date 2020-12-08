@@ -29,10 +29,26 @@ endforeach()
 #-------------------------------------------------------------------------------
 # the actual ethernet driver.
 
-CAmkESAddCPPInclude("include/plat/${PLATFORM}")
+CAmkESAddCPPInclude(
+    "include"
+    "include/${PLATFORM}"
+)
 
 DeclareCAmkESComponent(
     NIC_IMX6
+    SOURCES
+        src/ethdriver.c
+    INCLUDES
+        include
+    C_FLAGS
+        -DIMX6_PRIMARY_NIC
+    LIBS
+        os_core_api
+        ethdrivers
+)
+
+DeclareCAmkESComponent(
+   NIC_IMX6_port2
     SOURCES
         src/ethdriver.c
     INCLUDES

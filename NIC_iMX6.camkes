@@ -12,7 +12,7 @@ import <if_OS_Nic.camkes>;
 import <if_OS_Logger.camkes>;
 
 // platforms may have specific imports and components
-#include "plat/eth_devices.h"
+#include "plat_nic_imx6.camkes"
 HARDWARE_ETHERNET_EXTRA_IMPORTS
 HARDWARE_ETHERNET_COMPONENT
 
@@ -63,6 +63,26 @@ HARDWARE_ETHERNET_COMPONENT
         to    _logserver_.nwDriver_dp);
 
 
+//------------------------------------------------------------------------------
+// Internal driver configuration, no system should ever have the need to modify
+// this - unless it changes the DMA settings.
+//
+// DMA Memory requirements:
+//   RX Buffers          524288 bytes (256 * 2048)
+//   TX Buffers          262144 bytes (128 * 2048)
+//   RX Descriptor Ring    1024 bytes (allocation might take a whole page)
+//   TX Descriptor Ring    1024 bytes (allocation might take a whole page)
+//   ---------------------------------------------------------------------
+//   Total               788480 bytes (= 0xC0800)
+//
+#define NIC_IMX6_MEMORY_CONFIG(_nic_) \
+    _nic_.simple = true;             \
+    _nic_.cnode_size_bits = 12;      \
+    _nic_.simple_untyped20_pool = 2; \
+    _nic_.heap_size = 0x10000;       \
+    _nic_.dma_pool = 0xC2000; /* align up to a multiple of pages */
+
+
 component NIC_IMX6 {
 
     // We can't use the single_threaded_component() macro here, because there
@@ -88,12 +108,7 @@ component NIC_IMX6 {
     maybe dataport  Buf                     logServer_dp;
     maybe consumes  EventReady              logServer_event_ready;
 
-    // default attributes, can be overwritten to customize the driver
-    attribute int nic_promiscuous_mode = 1;
-    attribute int nic_skip_hardware_init = 0;
-    attribute int nic_id = 0;
-    attribute int nic_phy_address = 1;
-    attribute string MAC_address = "\x00\x00\x00\x00\x00\x00";
+    HARDWARE_ETHERNET_ATTRIBUTES
 
     HARDWARE_ETHERNET_INTERFACES
 
