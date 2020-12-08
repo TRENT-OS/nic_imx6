@@ -17,6 +17,52 @@ HARDWARE_ETHERNET_EXTRA_IMPORTS
 HARDWARE_ETHERNET_COMPONENT
 
 
+/*
+ * Connect a network stack to the NIC:
+ *
+ *      NIC_IMX6_INSTANCE_CONNECT_CLIENT(
+ *          <instance_nic>,
+ *          <instance_stack>
+ *      )
+ */
+#define NIC_IMX6_INSTANCE_CONNECT_CLIENT(_nic_, _stack_) \
+    \
+    connection seL4Ethdriver conn_ ## _nic_ ## _ ## _stack_ ## _eth( \
+        from _stack_.nic_driver, \
+        to   _nic_.client); \
+    \
+    connection seL4SharedData  conn_ ## _nic_ ## _ ## _stack_ ## _port_rx( \
+        from _nic_.nic_port_to, \
+        to   _stack_.nic_port_from); \
+    \
+    connection seL4SharedData conn_ ## _nic_ ## _ ## _stack_ ## _port_tx( \
+        from _nic_.nic_port_from, \
+        to   _stack_.nic_port_to); \
+    \
+    connection seL4NotificationNative conn_ ## _nic_ ## _ ## _stack_## _event( \
+        from _nic_.nic_event_hasData,\
+        to   _stack_.event_tick_or_data);
+
+
+/*
+ * Assign the optional logger:
+ *
+ *      NIC_IMX6_INSTANCE_CONNECT_OPTIONAL_LOGGER(
+ *          <instance>,
+ *          <logger>.<rpc>, <logger>.<port_to>
+ *      )
+ */
+#define NIC_IMX6_INSTANCE_CONNECT_OPTIONAL_LOGGER(_nic_, _logserver_) \
+    \
+    connection seL4RPCCall conn_ ## _nic_ ## _ ## _logserver_ ## _rpc( \
+        from _nic_.logServer_rpc, \
+        to   _logserver_.logServer_rpc); \
+    \
+    connection seL4SharedData  conn_ ## _nic_ ## _ ## _logserver_ ## _port( \
+        from  _nic_.logServer_dp, \
+        to    _logserver_.nwDriver_dp);
+
+
 component NIC_IMX6 {
 
     // We can't use the single_threaded_component() macro here, because there
