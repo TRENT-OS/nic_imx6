@@ -32,10 +32,11 @@
 #include <ethdrivers/plat/eth_plat.h>
 #include <sel4utils/sel4_zf_logif.h>
 
-#define RX_BUFS          256
-#define CLIENT_RX_BUFS   128
-#define CLIENT_TX_BUFS   128
-#define DMA_BUF_SIZE    2048
+#include <ethdrivers/gen_config.h>
+#define RX_BUFS          CONFIG_LIB_ETHDRIVER_NUM_PREALLOCATED_BUFFERS
+#define CLIENT_RX_BUFS   CONFIG_LIB_ETHDRIVER_RX_DESC_COUNT
+#define CLIENT_TX_BUFS   CONFIG_LIB_ETHDRIVER_TX_DESC_COUNT
+#define DMA_BUF_SIZE     CONFIG_LIB_ETHDRIVER_PREALLOCATED_BUF_SIZE
 
 typedef struct
 {
