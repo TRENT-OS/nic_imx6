@@ -537,14 +537,22 @@ get_nic_configuration(void)
     // initialize the struct using a list initializer. As a workaround
     // we set the values here.
 
+    uint64_t mac = 0;
+    // MAC string aa:bb:cc:dd:ee:ff to big endian integer 0x0000aabbccddeeff
+    for (unsigned int i = 0; i < 6; i++)
+    {
+        mac <<= 8;
+        mac |= (uint8_t)MAC_address[i];
+    }
+
     /* For the 2nd ethernet port, the PHY address is ignored actually, because
      * it is not used in the RPC call. Instead, it's hard-coded above that this
      * is always 5.
      */
     nic_config.phy_address        = nic_phy_address;
-    nic_config.promiscuous_mode   = nic_promiscuous_mode;
     nic_config.id                 = nic_id;
-    memcpy(nic_config.mac, MAC_address, sizeof(nic_config.mac));
+    nic_config.flags              = nic_flags;
+    nic_config.mac                = mac;
 
 #ifndef IMX6_PRIMARY_NIC
 

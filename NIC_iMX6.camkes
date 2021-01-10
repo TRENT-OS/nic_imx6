@@ -10,6 +10,12 @@ import <std_connector.camkes>;
 #include <if_OS_Nic.camkes>
 import <if_OS_Logger.camkes>;
 
+
+// NIC configuration flags
+#define NIC_CONFIG_FORCE_MAC            (1 << 0)
+#define NIC_CONFIG_PROMISCUOUS_MODE     (1 << 1)
+#define NIC_CONFIG_DROP_FRAME_CRC       (1 << 2)
+
 // platforms may have specific imports and components
 #include "plat_nic_imx6.camkes"
 HARDWARE_ETHERNET_EXTRA_IMPORTS
