@@ -1,5 +1,7 @@
 #
-# Copyright 2020, Hensoldt Cyber GmbH
+# Copyright 2020-2021, HENSOLDT Cyber GmbH
+#
+# SPDX-License-Identifier: BSD-3-Clause
 #
 # All rights reserved.
 #

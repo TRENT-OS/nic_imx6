@@ -1,5 +1,5 @@
 /*
- * Copyright 2020, Hensoldt Cyber GmbH
+ * Copyright 2020-2021, HENSOLDT Cyber GmbH
  * Copyright 2019, Data61, CSIRO (ABN 41 687 119 230)
  *
  * SPDX-License-Identifier: GPL2.0+
