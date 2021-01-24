@@ -160,6 +160,7 @@ static dma_addr_t* get_from_rx_buf_pool(
         return NULL;
     }
 
+    // LOG_INFO("take from RX DMA pool at: %d", imx6_nic_ctx.num_rx_bufs);
     (nic_ctx->num_rx_bufs)--;
     return nic_ctx->rx_buf_pool[nic_ctx->num_rx_bufs];
 }
@@ -174,6 +175,7 @@ static void return_to_rx_buf_pool(
     assert(nic_ctx);
     assert(dma);
 
+    // LOG_INFO("return to RX DMA pool at: %d", imx6_nic_ctx.num_rx_bufs);
     nic_ctx->rx_buf_pool[nic_ctx->num_rx_bufs] = dma;
     (nic_ctx->num_rx_bufs)++;
 }
@@ -678,11 +680,23 @@ int server_init(
     eth_driver->i_fn.get_mac(eth_driver, hw_mac);
     memcpy(client->mac, hw_mac, sizeof(client->mac));
 
+    LOG_INFO("call raw_poll()");
     eth_driver->i_fn.raw_poll(eth_driver);
 
     imx6_nic_ctx.done_init = true;
 
+    LOG_INFO("[i.MX6 NIC Driver '%s'] server_init done", get_instance_name());
+
     return 0;
+}
+
+
+//------------------------------------------------------------------------------
+// this is called after do_env_init()
+int do_pre_init(
+    ps_io_ops_t* io_ops)
+{
+    LOG_INFO("[i.MX6 NIC Driver '%s'] %s", get_instance_name(), __func__);
 }
 
 
@@ -691,6 +705,8 @@ int server_init(
 int do_env_init(
     ps_io_ops_t* io_ops)
 {
+    LOG_INFO("[i.MX6 NIC Driver '%s'] %s", get_instance_name(), __func__);
+
     memset(&imx6_nic_ctx, 0, sizeof(imx6_nic_ctx));
 
     return 0;
@@ -699,4 +715,5 @@ int do_env_init(
 
 //------------------------------------------------------------------------------
 CAMKES_ENV_INIT_MODULE_DEFINE(ethdriver_do_env_init, do_env_init)
+CAMKES_PRE_INIT_MODULE_DEFINE(ethdriver_do_pre_init, do_pre_init)
 CAMKES_POST_INIT_MODULE_DEFINE(ethdriver_run, server_init);
