@@ -3,8 +3,6 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 #
-# All rights reserved.
-#
 
 cmake_minimum_required(VERSION 3.17)
 
