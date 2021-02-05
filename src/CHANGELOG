@@ -1,8 +1,0 @@
-2021-01-20 HENSOLDT Cyber GmbH
-
-    * ethdriver.c
-        (features):              dual NIC support, add pool handling helper
-                                 functions, use LOG_ERROR() and LOG_INFO()
-        (refactoring):           remove unused code
-        (formatting):            improve comments
-        (bug fixing):            mixed up parameters order in dma function call
