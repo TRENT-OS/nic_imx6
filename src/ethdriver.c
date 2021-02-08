@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2020-2021, HENSOLDT Cyber GmbH
- * SPDX-License-Identifier: GPL2.0+
+ * SPDX-License-Identifier: GPL-2.0-only
  */
 
 /*
