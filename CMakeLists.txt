@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.17)
 
 set(
     CAMKES_GLOBAL_COMPS_DIR
-    "${SEL4_CAMKES_SDK_DIR}/libs/sel4_global_components")
+    "${SDK_SEL4_CAMKES_DIR}/libs/sel4_global_components")
 
 include("${CAMKES_GLOBAL_COMPS_DIR}/global-connectors.cmake")
 
