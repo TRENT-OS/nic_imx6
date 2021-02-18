@@ -710,6 +710,9 @@ int do_env_init(
 
     memset(&imx6_nic_ctx, 0, sizeof(imx6_nic_ctx));
 
+    extern void sched_yield(void);
+    for (unsigned int delay=0; delay<100000; delay++) { sched_yield(); }
+
     return 0;
 }
 
