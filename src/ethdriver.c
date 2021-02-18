@@ -607,7 +607,7 @@ int server_init(
         dma_addr_t dma = dma_alloc_pin(
                             &(io_ops->dma_manager),
                             DMA_BUF_SIZE,
-                            1, // cached
+                            0, // uncached
                             4); // alignment
         if (!dma.phys) {
             LOG_ERROR("Failed to allocate DMA of size %zu for RX buffer #%d ",
@@ -626,7 +626,7 @@ int server_init(
         dma_addr_t dma = dma_alloc_pin(
                             &(io_ops->dma_manager),
                             DMA_BUF_SIZE,
-                            1, // cached
+                            0, // uncached
                             4); // alignment
         if (!dma.phys) {
             LOG_ERROR("Failed to allocate DMA of size %zu for TX buffer #%d ",
