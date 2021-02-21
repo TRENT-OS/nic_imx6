@@ -69,8 +69,8 @@ HARDWARE_ETHERNET_COMPONENT
 // DMA Memory requirements:
 //   RX Buffers          524288 bytes (256 * 2048)
 //   TX Buffers          262144 bytes (128 * 2048)
-//   RX Descriptor Ring    1024 bytes (allocation might take a whole page)
-//   TX Descriptor Ring    1024 bytes (allocation might take a whole page)
+//   RX Descriptor Ring    1024 bytes (128 *    8)
+//   TX Descriptor Ring    1024 bytes (128 *    8)
 //   ---------------------------------------------------------------------
 //   Total               788480 bytes (= 0xC0800)
 //
