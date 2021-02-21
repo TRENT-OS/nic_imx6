@@ -599,6 +599,8 @@ int server_init(
     client->should_notify = true;
 
     /* preallocate buffers */
+    LOG_INFO("allocate RX DMA buffers: %u x %zu (=%zu) byte",
+             RX_BUFS, DMA_BUF_SIZE, RX_BUFS*DMA_BUF_SIZE);
     for (unsigned int i = 0; i < RX_BUFS; i++)
     {
         /* Note that the parameters "cached" and "alignment" of this helper
@@ -618,6 +620,8 @@ int server_init(
         add_to_rx_buf_pool(&imx6_nic_ctx, &dma);
     }
 
+    LOG_INFO("allocate TX DMA buffer: %u x %zu (=%zu) byte",
+             CLIENT_TX_BUFS, DMA_BUF_SIZE, CLIENT_TX_BUFS*DMA_BUF_SIZE);
     for (unsigned int i = 0; i < CLIENT_TX_BUFS; i++)
     {
         /* Note that the parameters "cached" and "alignment" of this helper
