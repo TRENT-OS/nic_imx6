@@ -5,6 +5,11 @@
 
 cmake_minimum_required(VERSION 3.17)
 
+
+# Everything in this file can only be used with CAmkES.
+if(SDK_USE_CAMKES)
+
+
 #-------------------------------------------------------------------------------
 # global component setup
 
@@ -56,3 +61,6 @@ DeclareCAmkESComponent(
         os_core_api
         ethdrivers
 )
+
+
+endif()  # SDK_USE_CAMKES
