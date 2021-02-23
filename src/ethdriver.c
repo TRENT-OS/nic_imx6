@@ -40,16 +40,15 @@
 
 typedef struct
 {
+    dma_addr_t* dma;
+    int len;
+} rx_frame_t; // Clients share a pool of RX frames
+
+typedef struct
+{
     dma_addr_t dma;
     int len;
-} rx_tx_frame;
-
-// Each client has a pool of TX frames
-typedef rx_tx_frame tx_frame_t;
-
-// Clients share a pool of RX frames
-typedef rx_tx_frame rx_frame_t;
-
+} tx_frame_t; // Each client has a pool of TX frames
 
 typedef struct
 {
@@ -228,7 +227,16 @@ static void eth_rx_complete(
     else
     {
         rx_frame_t* rx_frame = &client->pending_rx[client->pending_rx_head];
-        rx_frame->dma        = *(dma_addr_t*)(cookies[0]);
+
+        // Cookie points to one of the dma pool elements (rx_bufs[] and
+        // rx_buf_pool[]), and we store this pointer in the rx_frame so that the
+        // return_to_rx_buf_pool() can return it back to the dma pool once the
+        // data is processed in the client_rx_data(). After the dma structure is
+        // back on the pool it can be reused as another cookie.
+        //
+        // See return_to_rx_buf_pool() and get_from_rx_buf_pool() for more
+        // details.
+        rx_frame->dma        = (dma_addr_t*)(cookies[0]);
         rx_frame->len        = lens[0];
 
         client->pending_rx_head =
@@ -295,7 +303,7 @@ client_rx_data(
      *       we should share the ring buffer elements with the network stack to
      *       use a zero-copy approach.
      */
-    memcpy(nic_port_to, rx->dma.virt, rx->len);
+    memcpy(nic_port_to, rx->dma->virt, rx->len);
     *pLen = rx->len;
 
     client->pending_rx_tail = (client->pending_rx_tail + 1) % CLIENT_RX_BUFS;
@@ -309,7 +317,7 @@ client_rx_data(
         *framesRemaining = 1;
     }
 
-    return_to_rx_buf_pool(&imx6_nic_ctx, &(rx->dma));
+    return_to_rx_buf_pool(&imx6_nic_ctx, rx->dma);
 
     return OS_SUCCESS;
 }
