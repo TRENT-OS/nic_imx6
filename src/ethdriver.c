@@ -153,7 +153,8 @@ static dma_addr_t* get_from_rx_buf_pool(
         return NULL;
     }
 
-    return nic_ctx->rx_buf_pool[--(nic_ctx->num_rx_bufs)];
+    (nic_ctx->num_rx_bufs)--;
+    return nic_ctx->rx_buf_pool[nic_ctx->num_rx_bufs];
 }
 
 
@@ -166,7 +167,8 @@ static void return_to_rx_buf_pool(
     assert(nic_ctx);
     assert(dma);
 
-    nic_ctx->rx_buf_pool[(nic_ctx->num_rx_bufs)++] = dma;
+    nic_ctx->rx_buf_pool[nic_ctx->num_rx_bufs] = dma;
+    (nic_ctx->num_rx_bufs)++;
 }
 
 
@@ -176,7 +178,8 @@ static void eth_tx_complete(
     void* cookie)
 {
     client_t* client = &imx6_nic_ctx.client;
-    client->pending_tx[(client->num_tx)++] = (tx_frame_t*)cookie;
+    client->pending_tx[client->num_tx] = (tx_frame_t*)cookie;
+    (client->num_tx)++;
 }
 
 
@@ -217,7 +220,7 @@ static void eth_rx_complete(
     {
         LOG_ERROR("Trying to write %d buffers, can only do one", num_bufs);
     }
-    else if ((client->pending_rx_head + 1) % CLIENT_RX_BUFS == client->pending_rx_tail)
+    else if (((client->pending_rx_head + 1) % CLIENT_RX_BUFS) == client->pending_rx_tail)
     {
         LOG_ERROR("RX buffer overflow");
     }
@@ -228,11 +231,13 @@ static void eth_rx_complete(
         rx_frame->len        = lens[0];
 
         client->pending_rx_head = (client->pending_rx_head + 1) % CLIENT_RX_BUFS;
+
         if (client->should_notify)
         {
             nic_event_hasData_emit();
             client->should_notify = false;
         }
+
         return;
     }
 
@@ -281,6 +286,7 @@ client_rx_data(
         client->should_notify = true;
         return OS_ERROR_NO_DATA;
     }
+
     rx_frame_t* rx = &client->pending_rx[client->pending_rx_tail];
 
     /* ToDo: Instead of copying the DMA buffer into the shared dataport memory,
@@ -300,7 +306,9 @@ client_rx_data(
     {
         *framesRemaining = 1;
     }
+
     return_to_rx_buf_pool(&imx6_nic_ctx, &(rx->dma));
+
     return OS_SUCCESS;
 }
 
@@ -376,7 +384,6 @@ OS_Error_t client_tx_data(size_t * pLen)
     }
 
     return OS_SUCCESS;
-
 }
 
 
@@ -386,6 +393,7 @@ client_get_mac_address(void)
 {
     client_t* client = &imx6_nic_ctx.client;
     memcpy((uint8_t*)nic_port_to, client->mac, sizeof(client->mac));
+
     return OS_SUCCESS;
 }
 
@@ -552,6 +560,7 @@ int server_init(
         PS_ETHERNET_INTERFACE,
         hardware_interface_searcher,
         NULL);
+
     if (error)
     {
         LOG_ERROR("Unable to find an ethernet device, code %d", error);
