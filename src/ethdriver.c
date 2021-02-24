@@ -118,7 +118,7 @@ static void add_to_rx_buf_pool(
     dma_addr_t* dma_slot = &nic_ctx->rx_bufs[idx];
     *dma_slot = *dma;
     nic_ctx->rx_buf_pool[idx] = dma_slot;
-    nic_ctx->num_rx_bufs++;
+    (nic_ctx->num_rx_bufs)++;
 }
 
 
@@ -136,7 +136,7 @@ static void add_to_client_tx_buf_pool(
     tx_frame->dma = *dma;
     tx_frame->len = DMA_BUF_SIZE;
     client->pending_tx[idx] = tx_frame;
-    client->num_tx++;
+    (client->num_tx)++;
 }
 
 
@@ -153,7 +153,7 @@ static dma_addr_t* get_from_rx_buf_pool(
         return NULL;
     }
 
-    return nic_ctx->rx_buf_pool[--nic_ctx->num_rx_bufs];
+    return nic_ctx->rx_buf_pool[--(nic_ctx->num_rx_bufs)];
 }
 
 
@@ -166,7 +166,7 @@ static void return_to_rx_buf_pool(
     assert(nic_ctx);
     assert(dma);
 
-    nic_ctx->rx_buf_pool[nic_ctx->num_rx_bufs++] = dma;
+    nic_ctx->rx_buf_pool[(nic_ctx->num_rx_bufs)++] = dma;
 }
 
 
@@ -176,7 +176,7 @@ static void eth_tx_complete(
     void* cookie)
 {
     client_t* client = &imx6_nic_ctx.client;
-    client->pending_tx[client->num_tx++] = (tx_frame_t*)cookie;
+    client->pending_tx[(client->num_tx)++] = (tx_frame_t*)cookie;
 }
 
 
@@ -346,7 +346,7 @@ OS_Error_t client_tx_data(size_t * pLen)
         return OS_ERROR_GENERIC;
     }
 
-    client->num_tx--;
+    (client->num_tx)--;
     tx_frame_t* tx_buf = client->pending_tx[client->num_tx];
 
     /* copy the packet over */
@@ -371,7 +371,7 @@ OS_Error_t client_tx_data(size_t * pLen)
     {
         /* TX failed, free internal TX buffer. Client my retry transmission */
         LOG_ERROR("Failed to enqueue tx packet, code %d", err);
-        client->num_tx++;
+        (client->num_tx)++;
         return OS_ERROR_GENERIC;
     }
 
