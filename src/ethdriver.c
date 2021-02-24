@@ -220,7 +220,8 @@ static void eth_rx_complete(
     {
         LOG_ERROR("Trying to write %d buffers, can only do one", num_bufs);
     }
-    else if (((client->pending_rx_head + 1) % CLIENT_RX_BUFS) == client->pending_rx_tail)
+    else if (((client->pending_rx_head + 1) % CLIENT_RX_BUFS)
+                == client->pending_rx_tail)
     {
         LOG_ERROR("RX buffer overflow");
     }
@@ -230,7 +231,8 @@ static void eth_rx_complete(
         rx_frame->dma        = *(dma_addr_t*)(cookies[0]);
         rx_frame->len        = lens[0];
 
-        client->pending_rx_head = (client->pending_rx_head + 1) % CLIENT_RX_BUFS;
+        client->pending_rx_head =
+            (client->pending_rx_head + 1) % CLIENT_RX_BUFS;
 
         if (client->should_notify)
         {
@@ -320,7 +322,8 @@ client_rx_data(
  *         OS_ERROR_NOT_INITIALIZED The device hasn't finished initializing.
  *         The call should be retried.
  *         OS_ERROR_INVALID_PARAMETER The length requested is invalid.
- *         OS_ERROR_TRY_AGAIN Frame couldn't be enqueued and has to be sent again
+ *         OS_ERROR_TRY_AGAIN Frame couldn't be enqueued and has to be sent
+ *                              again.
  */
 OS_Error_t client_tx_data(size_t * pLen)
 {
@@ -340,7 +343,11 @@ OS_Error_t client_tx_data(size_t * pLen)
 
     if (len > DMA_BUF_SIZE)
     {
-        ZF_LOGW("truncate packet size %zu to max supported %d", len, DMA_BUF_SIZE);
+        ZF_LOGW(
+            "truncate packet size %zu to max supported %d",
+            len,
+            DMA_BUF_SIZE);
+
         len = DMA_BUF_SIZE;
     }
 
@@ -502,7 +509,9 @@ int call_primary_nic_mdio_write(uint16_t reg, uint16_t data)
 const nic_config_t*
 get_nic_configuration(void)
 {
-    LOG_INFO("[i.MX6 NIC Driver '%s'] get_nic_configuration()", get_instance_name());
+    LOG_INFO(
+        "[i.MX6 NIC Driver '%s'] get_nic_configuration()",
+        get_instance_name());
 
     static nic_config_t nic_config = {0};
     // CAmkES attributes aren't constant expressions and we can't
