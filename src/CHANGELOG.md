@@ -6,6 +6,13 @@ the TRENTOS-M SDK will be documented in this file.
 For more details it is recommended to compare the 3rd party module at hand with
 the previous versions of the TRENTOS-M SDK or the baseline version.
 
+## [1.3]
+
+### Fixed
+
+- Fix an issue which in certain circumstances causes the rx_buffer to be
+duplicated.
+
 ## [1.1]
 
 ### Fixed
