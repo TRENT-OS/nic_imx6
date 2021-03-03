@@ -9,61 +9,68 @@
 cmake_minimum_required(VERSION 3.17)
 
 
-# Everything in this file can only be used with CAmkES.
 if(SDK_USE_CAMKES)
 
+    # global component setup
+    set(
+        CAMKES_GLOBAL_COMPS_DIR
+        "${SDK_SEL4_CAMKES_DIR}/libs/sel4_global_components")
 
-#-------------------------------------------------------------------------------
-# global component setup
+    include("${CAMKES_GLOBAL_COMPS_DIR}/global-connectors.cmake")
 
-set(
-    CAMKES_GLOBAL_COMPS_DIR
-    "${SDK_SEL4_CAMKES_DIR}/libs/sel4_global_components")
-
-include("${CAMKES_GLOBAL_COMPS_DIR}/global-connectors.cmake")
-
-foreach(
-    comp IN ITEMS
-        fdt-bind-driver
-        single-threaded
-)
-    add_subdirectory(
-        "${CAMKES_GLOBAL_COMPS_DIR}/components/modules/${comp}"
-        "sel4_global_components/${comp}")
-endforeach()
-
-
-#-------------------------------------------------------------------------------
-# the actual ethernet driver.
-
-CAmkESAddCPPInclude(
-    "include"
-    "include/${PLATFORM}"
-)
-
-DeclareCAmkESComponent(
-    NIC_IMX6
-    SOURCES
-        src/ethdriver.c
-    INCLUDES
-        include
-    C_FLAGS
-        -DIMX6_PRIMARY_NIC
-    LIBS
-        os_core_api
-        ethdrivers
-)
-
-DeclareCAmkESComponent(
-   NIC_IMX6_port2
-    SOURCES
-        src/ethdriver.c
-    INCLUDES
-        include
-    LIBS
-        os_core_api
-        ethdrivers
-)
-
+    foreach(
+        comp IN ITEMS
+            fdt-bind-driver
+            single-threaded
+    )
+        add_subdirectory(
+            "${CAMKES_GLOBAL_COMPS_DIR}/components/modules/${comp}"
+            "sel4_global_components/${comp}")
+    endforeach()
 
 endif()  # SDK_USE_CAMKES
+
+
+#-------------------------------------------------------------------------------
+function(NIC_IMX6_DeclareCAmkESComponent name)
+
+    cmake_parse_arguments(
+        PARSE_ARGV
+        1
+        NIC_IMX6
+        "" # Option arguments
+        "" # Single arguments
+        "C_FLAGS" # Multiple arguments
+    )
+
+    DeclareCAmkESComponent(
+        ${name}
+        SOURCES
+            ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/ethdriver.c
+        INCLUDES
+            include
+        C_FLAGS
+            ${NIC_IMX6_C_FLAGS}
+        LIBS
+            os_core_api
+            ethdrivers
+    )
+
+endfunction()
+
+
+
+#-------------------------------------------------------------------------------
+# declare CAmkES components for all NICs of a platform
+function(DeclareCAmkESComponents_for_NICs)
+
+    set(dir_plat "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/plat/${PLATFORM}")
+
+    if(NOT IS_DIRECTORY "${dir_plat}")
+        message(FATAL_ERROR "unsupported platform: '${PLATFORM}'")
+    endif()
+
+    CAmkESAddCPPInclude("${dir_plat}")
+    include("${dir_plat}/plat_nic_imx6.cmake")
+
+endfunction()
