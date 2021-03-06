@@ -11,20 +11,14 @@ cmake_minimum_required(VERSION 3.17)
 
 if(SDK_USE_CAMKES)
 
-    # global component setup
-    set(
-        CAMKES_GLOBAL_COMPS_DIR
-        "${SDK_SEL4_CAMKES_DIR}/libs/sel4_global_components")
-
-    include("${CAMKES_GLOBAL_COMPS_DIR}/global-connectors.cmake")
-
+    # cherry pick global components
     foreach(
         comp IN ITEMS
             fdt-bind-driver
             single-threaded
     )
         add_subdirectory(
-            "${CAMKES_GLOBAL_COMPS_DIR}/components/modules/${comp}"
+            "${SDK_SEL4_CAMKES_GLOBAL_COMPS_DIR}/components/modules/${comp}"
             "sel4_global_components/${comp}")
     endforeach()
 
