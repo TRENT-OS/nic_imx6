@@ -461,67 +461,67 @@ int primary_nic_sync(void)
 }
 
 
-//------------------------------------------------------------------------------
-// RPC interface for secondary NIC driver
-int primary_nic_mdio_read(uint16_t reg)
-{
-    // printf("RPC: MDIO read reg=0x%x, data=0x%x\n", reg);
-
-    if (!imx6_nic_ctx.done_init)
-    {
-        LOG_ERROR("Driver init failed, reject MDIO read access RPC");
-        return -1;
-    }
-
-    struct enet* enet = get_enet_from_driver(imx6_nic_ctx.eth_driver);
-    assert(enet); // this must be set  if init way successful
-
-    return enet_mdio_read(enet, IMX6_ENET2_PHY_ADDR, reg);
-}
-
-//------------------------------------------------------------------------------
-// RPC interface for secondary NIC driver
-int primary_nic_mdio_write(uint16_t reg, uint16_t data)
-{
-    // ensure RPC calls are serialized properly, we can only handle them when
-    // the semaphore is available, which is after we have finished out init.
-
-    if (!imx6_nic_ctx.done_init)
-    {
-        LOG_ERROR("Driver init failed, reject MDIO read access RPC");
-        return -1;
-    }
-
-    struct enet* enet = get_enet_from_driver(imx6_nic_ctx.eth_driver);
-    assert(enet); // this must be set  if init way successful
-
-    return enet_mdio_write(enet, IMX6_ENET2_PHY_ADDR, reg, data);
-}
-
-#else // not IMX6_PRIMARY_NIC
-
-//------------------------------------------------------------------------------
-int call_primary_nic_sync(void)
-{
-    // call CAmkES function, will block until the primary NIC is up.
-    return primary_nic_rpc_sync();
-}
-
-
-//------------------------------------------------------------------------------
-int call_primary_nic_mdio_read(uint16_t reg)
-{
-    // call CAmkES function to make primary NIC driver send the MDIO command
-    return primary_nic_rpc_mdio_read(reg);
-}
-
-
-//------------------------------------------------------------------------------
-int call_primary_nic_mdio_write(uint16_t reg, uint16_t data)
-{
-    // call CAmkES function to make primary NIC driver send the MDIO command
-    return primary_nic_rpc_mdio_write(reg, data);
-}
+// //------------------------------------------------------------------------------
+// // RPC interface for secondary NIC driver
+// int primary_nic_mdio_read(uint16_t reg)
+// {
+//     // printf("RPC: MDIO read reg=0x%x, data=0x%x\n", reg);
+//
+//     if (!imx6_nic_ctx.done_init)
+//     {
+//         LOG_ERROR("Driver init failed, reject MDIO read access RPC");
+//         return -1;
+//     }
+//
+//     struct enet* enet = get_enet_from_driver(imx6_nic_ctx.eth_driver);
+//     assert(enet); // this must be set  if init way successful
+//
+//     return enet_mdio_read(enet, IMX6_ENET2_PHY_ADDR, reg);
+// }
+//
+// //------------------------------------------------------------------------------
+// // RPC interface for secondary NIC driver
+// int primary_nic_mdio_write(uint16_t reg, uint16_t data)
+// {
+//     // ensure RPC calls are serialized properly, we can only handle them when
+//     // the semaphore is available, which is after we have finished out init.
+//
+//     if (!imx6_nic_ctx.done_init)
+//     {
+//         LOG_ERROR("Driver init failed, reject MDIO read access RPC");
+//         return -1;
+//     }
+//
+//     struct enet* enet = get_enet_from_driver(imx6_nic_ctx.eth_driver);
+//     assert(enet); // this must be set  if init way successful
+//
+//     return enet_mdio_write(enet, IMX6_ENET2_PHY_ADDR, reg, data);
+// }
+//
+// #else // not IMX6_PRIMARY_NIC
+//
+// //------------------------------------------------------------------------------
+// int call_primary_nic_sync(void)
+// {
+//     // call CAmkES function, will block until the primary NIC is up.
+//     return primary_nic_rpc_sync();
+// }
+//
+//
+// //------------------------------------------------------------------------------
+// int call_primary_nic_mdio_read(uint16_t reg)
+// {
+//     // call CAmkES function to make primary NIC driver send the MDIO command
+//     return primary_nic_rpc_mdio_read(reg);
+// }
+//
+//
+// //------------------------------------------------------------------------------
+// int call_primary_nic_mdio_write(uint16_t reg, uint16_t data)
+// {
+//     // call CAmkES function to make primary NIC driver send the MDIO command
+//     return primary_nic_rpc_mdio_write(reg, data);
+// }
 
 #endif // [not] IMX6_PRIMARY_NIC
 
@@ -552,7 +552,7 @@ get_nic_configuration(void)
      * is always 5.
      */
     nic_config.phy_address        = nic_phy_address;
-    nic_config.id                 = nic_id;
+    // nic_config.id                 = nic_id;
     nic_config.flags              = nic_flags;
     nic_config.mac                = mac;
 
