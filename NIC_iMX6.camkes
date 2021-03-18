@@ -58,8 +58,8 @@ HARDWARE_ETHERNET_COMPONENT
         to   _logserver_.logServer_rpc); \
     \
     connection seL4SharedData  conn_ ## _nic_ ## _ ## _logserver_ ## _port( \
-        from  _nic_.logServer_dp, \
-        to    _logserver_.nwDriver_dp);
+        from  _nic_.logServer_port, \
+        to    _logserver_.nwDriver_port);
 
 
 //------------------------------------------------------------------------------
@@ -104,7 +104,7 @@ component NIC_IMX6 {
 
     // optional connection to the LogServer
     maybe uses      if_OS_Logger            logServer_rpc;
-    maybe dataport  Buf                     logServer_dp;
+    maybe dataport  Buf                     logServer_port;
     maybe consumes  EventReady              logServer_event_ready;
 
     HARDWARE_ETHERNET_ATTRIBUTES
