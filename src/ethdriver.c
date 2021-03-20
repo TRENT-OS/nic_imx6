@@ -274,8 +274,7 @@ static void eth_rx_complete(
  *             The call should be retried.
  *             OS_ERROR_NO_DATA No data is available to be read.
  */
-OS_Error_t
-client_rx_data(
+OS_Error_t client_rx_data(
     size_t* pLen,
     size_t* framesRemaining)
 {
@@ -403,8 +402,7 @@ OS_Error_t client_tx_data(size_t * pLen)
 
 
 //------------------------------------------------------------------------------
-OS_Error_t
-client_get_mac_address(void)
+OS_Error_t client_get_mac_address(void)
 {
     client_t* client = &imx6_nic_ctx.client;
     memcpy((uint8_t*)nic_port_to, client->mac, sizeof(client->mac));
