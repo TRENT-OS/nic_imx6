@@ -287,7 +287,7 @@ static void cb_eth_rx_complete(
  *             The call should be retried.
  *             OS_ERROR_NO_DATA No data is available to be read.
  */
-OS_Error_t client_rx_data(
+OS_Error_t nic_rpc_rx_data(
     size_t* pLen,
     size_t* framesRemaining)
 {
@@ -315,7 +315,7 @@ OS_Error_t client_rx_data(
      *       we should share the ring buffer elements with the network stack to
      *       use a zero-copy approach.
      */
-    memcpy(nic_port_to, rx->dma->virt, rx->len);
+    memcpy(nic_to_port, rx->dma->virt, rx->len);
     *pLen = rx->len;
 
     client->pending_rx_tail = (client->pending_rx_tail + 1) % CLIENT_RX_BUFS;
@@ -345,7 +345,7 @@ OS_Error_t client_rx_data(
  *         OS_ERROR_TRY_AGAIN Frame couldn't be enqueued and has to be sent
  *                              again.
  */
-OS_Error_t client_tx_data(size_t * pLen)
+OS_Error_t nic_rpc_tx_data(size_t * pLen)
 {
     if (!imx6_nic_ctx.done_init)
     {
@@ -385,7 +385,7 @@ OS_Error_t client_tx_data(size_t * pLen)
     tx_frame_t* tx_buf = client->pending_tx[client->num_tx];
 
     /* copy the packet over */
-    memcpy(tx_buf->dma.virt, nic_port_from, len);
+    memcpy(tx_buf->dma.virt, nic_from_port, len);
 
     /* set source MAC */
     memcpy(
@@ -415,10 +415,10 @@ OS_Error_t client_tx_data(size_t * pLen)
 
 
 //------------------------------------------------------------------------------
-OS_Error_t client_get_mac_address(void)
+OS_Error_t nic_rpc_get_mac_address(void)
 {
     client_t* client = &imx6_nic_ctx.client;
-    memcpy((uint8_t*)nic_port_to, client->mac, sizeof(client->mac));
+    memcpy((uint8_t*)nic_to_port, client->mac, sizeof(client->mac));
 
     return OS_SUCCESS;
 }

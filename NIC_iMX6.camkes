@@ -7,7 +7,7 @@
 
 import <std_connector.camkes>;
 
-import <if_OS_Nic.camkes>;
+#include <if_OS_Nic.camkes>
 import <if_OS_Logger.camkes>;
 
 // platforms may have specific imports and components
@@ -31,12 +31,7 @@ component NIC_IMX6 {
     maybe consumes Trace trace_stop;
     // end of things from single_threaded_component()
 
-    provides if_OS_Nic client;
-
-    dataport         Buf(NIC_DRIVER_RINGBUFFER_SIZE) nic_port_to; /* driver -> network stack */
-    dataport         Buf                             nic_port_from; /* network stack -> driver */
-
-    emits EventDataAvailable nic_event_hasData;
+    IF_OS_NIC_LOWER_INTERFACE_FIELDS(nic, NIC_DRIVER_RINGBUFFER_SIZE)
 
     // optional connection to the LogServer
     maybe uses      if_OS_Logger            logServer_rpc;
@@ -75,27 +70,6 @@ component NIC_IMX6 {
     _nic_.simple_untyped20_pool = 2; \
     _nic_.heap_size = 0x10000;       \
     _nic_.dma_pool = 0xC2000; /* align up to a multiple of pages */
-
-
-//------------------------------------------------------------------------------
-// Connect a network stack to the NIC:
-#define NIC_IMX6_INSTANCE_CONNECT_CLIENT(_nic_, _stack_) \
-    \
-    connection seL4Ethdriver conn_ ## _nic_ ## _ ## _stack_ ## _eth( \
-        from _stack_.nic_driver, \
-        to   _nic_.client); \
-    \
-    connection seL4SharedData  conn_ ## _nic_ ## _ ## _stack_ ## _port_rx( \
-        from _nic_.nic_port_to, \
-        to   _stack_.nic_port_from); \
-    \
-    connection seL4SharedData conn_ ## _nic_ ## _ ## _stack_ ## _port_tx( \
-        from _nic_.nic_port_from, \
-        to   _stack_.nic_port_to); \
-    \
-    connection seL4NotificationNative conn_ ## _nic_ ## _ ## _stack_## _event( \
-        from _nic_.nic_event_hasData,\
-        to   _stack_.event_tick_or_data);
 
 
 //------------------------------------------------------------------------------
