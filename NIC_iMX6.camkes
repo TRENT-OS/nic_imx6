@@ -16,80 +16,16 @@ HARDWARE_ETHERNET_EXTRA_IMPORTS
 HARDWARE_ETHERNET_COMPONENT
 
 
-/*
- * Connect a network stack to the NIC:
- *
- *      NIC_IMX6_INSTANCE_CONNECT_CLIENT(
- *          <instance_nic>,
- *          <instance_stack>
- *      )
- */
-#define NIC_IMX6_INSTANCE_CONNECT_CLIENT(_nic_, _stack_) \
-    \
-    connection seL4Ethdriver conn_ ## _nic_ ## _ ## _stack_ ## _eth( \
-        from _stack_.nic_driver, \
-        to   _nic_.client); \
-    \
-    connection seL4SharedData  conn_ ## _nic_ ## _ ## _stack_ ## _port_rx( \
-        from _nic_.nic_port_to, \
-        to   _stack_.nic_port_from); \
-    \
-    connection seL4SharedData conn_ ## _nic_ ## _ ## _stack_ ## _port_tx( \
-        from _nic_.nic_port_from, \
-        to   _stack_.nic_port_to); \
-    \
-    connection seL4NotificationNative conn_ ## _nic_ ## _ ## _stack_## _event( \
-        from _nic_.nic_event_hasData,\
-        to   _stack_.event_tick_or_data);
-
-
-/*
- * Assign the optional logger:
- *
- *      NIC_IMX6_INSTANCE_CONNECT_OPTIONAL_LOGGER(
- *          <instance>,
- *          <logger>.<rpc>, <logger>.<port_to>
- *      )
- */
-#define NIC_IMX6_INSTANCE_CONNECT_OPTIONAL_LOGGER(_nic_, _logserver_) \
-    \
-    connection seL4RPCCall conn_ ## _nic_ ## _ ## _logserver_ ## _rpc( \
-        from _nic_.logServer_rpc, \
-        to   _logserver_.logServer_rpc); \
-    \
-    connection seL4SharedData  conn_ ## _nic_ ## _ ## _logserver_ ## _port( \
-        from  _nic_.logServer_port, \
-        to    _logserver_.nwDriver_port);
-
-
 //------------------------------------------------------------------------------
-// Internal driver configuration, no system should ever have the need to modify
-// this - unless it changes the DMA settings.
-//
-// DMA Memory requirements:
-//   RX Buffers          524288 bytes (256 * 2048)
-//   TX Buffers          262144 bytes (128 * 2048)
-//   RX Descriptor Ring    1024 bytes (128 *    8)
-//   TX Descriptor Ring    1024 bytes (128 *    8)
-//   ---------------------------------------------------------------------
-//   Total               788480 bytes (= 0xC0800)
-//
-#define NIC_IMX6_MEMORY_CONFIG(_nic_) \
-    _nic_.simple = true;             \
-    _nic_.cnode_size_bits = 12;      \
-    _nic_.simple_untyped20_pool = 2; \
-    _nic_.heap_size = 0x10000;       \
-    _nic_.dma_pool = 0xC2000; /* align up to a multiple of pages */
-
-
 component NIC_IMX6 {
 
-    // We can't use the single_threaded_component() macro here, because there
-    // is a global components include quirk in BenchUtilz. It includes the
-    // global components TimeServer, which conflicts with our TimeServer
-    // implementation, that uses the same component name. Thus, we put the
-    // macro contents here.
     control;
+
+    // We can't just use the macro single_threaded_component() here due to an
+    // include quirk in the global components. The module BenchUtilz includes
+    // the TimeServer from the global components, which causes a name clash with
+    // our TimeServer implementation, that uses the same component name. Thus,
+    // we put the macro contents here.
     attribute int single_threaded = 1;
     maybe consumes Trace trace_start;
     maybe consumes Trace trace_stop;
@@ -119,3 +55,57 @@ component NIC_IMX6 {
         HARDWARE_ETHERNET_CONFIG
     }
 };
+
+
+//------------------------------------------------------------------------------
+// Internal driver configuration. No system should ever have the need to modify
+// this unless it changes the DMA settings.
+//
+// DMA Memory requirements:
+//   RX Buffers          524288 bytes (256 * 2048)
+//   TX Buffers          262144 bytes (128 * 2048)
+//   RX Descriptor Ring    1024 bytes (128 *    8)
+//   TX Descriptor Ring    1024 bytes (128 *    8)
+//   ----------------------------------------------
+//   Total               788480 bytes (= 0xC0800)
+//
+#define NIC_IMX6_MEMORY_CONFIG(_nic_) \
+    _nic_.simple = true;             \
+    _nic_.cnode_size_bits = 12;      \
+    _nic_.simple_untyped20_pool = 2; \
+    _nic_.heap_size = 0x10000;       \
+    _nic_.dma_pool = 0xC2000; /* align up to a multiple of pages */
+
+
+//------------------------------------------------------------------------------
+// Connect a network stack to the NIC:
+#define NIC_IMX6_INSTANCE_CONNECT_CLIENT(_nic_, _stack_) \
+    \
+    connection seL4Ethdriver conn_ ## _nic_ ## _ ## _stack_ ## _eth( \
+        from _stack_.nic_driver, \
+        to   _nic_.client); \
+    \
+    connection seL4SharedData  conn_ ## _nic_ ## _ ## _stack_ ## _port_rx( \
+        from _nic_.nic_port_to, \
+        to   _stack_.nic_port_from); \
+    \
+    connection seL4SharedData conn_ ## _nic_ ## _ ## _stack_ ## _port_tx( \
+        from _nic_.nic_port_from, \
+        to   _stack_.nic_port_to); \
+    \
+    connection seL4NotificationNative conn_ ## _nic_ ## _ ## _stack_## _event( \
+        from _nic_.nic_event_hasData,\
+        to   _stack_.event_tick_or_data);
+
+
+//------------------------------------------------------------------------------
+// Connect a LogServer to the NIC
+#define NIC_IMX6_INSTANCE_CONNECT_OPTIONAL_LOGGER(_nic_, _logserver_) \
+    \
+    connection seL4RPCCall conn_ ## _nic_ ## _ ## _logserver_ ## _rpc( \
+        from _nic_.logServer_rpc, \
+        to   _logserver_.logServer_rpc); \
+    \
+    connection seL4SharedData  conn_ ## _nic_ ## _ ## _logserver_ ## _port( \
+        from  _nic_.logServer_port, \
+        to    _logserver_.nwDriver_port);
