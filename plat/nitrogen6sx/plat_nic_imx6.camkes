@@ -150,16 +150,20 @@ procedure if_imx6_primary_nic {
 //------------------------------------------------------------------------------
 component NIC_IMX6_port2 {
 
+    control;
+
     // We can't use the single_threaded_component() macro here, because there
     // is a global components include quirk in BenchUtilz. It includes the
     // global components TimeServer, which conflicts with our TimeServer
     // implementation, that uses the same component name. Thus, we put the
     // macro contents here.
-    control;
     attribute int single_threaded = 1;
     maybe consumes Trace trace_start;
     maybe consumes Trace trace_stop;
     // end of things from single_threaded_component()
+
+    // primary NIC interface for MDIO/PHY access
+    uses if_imx6_primary_nic primary_nic_rpc;
 
     provides if_OS_Nic client;
 
@@ -167,8 +171,6 @@ component NIC_IMX6_port2 {
     dataport Buf                             nic_port_from; /* network stack -> driver */
 
     emits EventDataAvailable nic_event_hasData;
-
-    uses if_imx6_primary_nic primary_nic_rpc;
 
     // optional connection to the LogServer
     maybe uses      if_OS_Logger  logServer_rpc;
