@@ -571,10 +571,10 @@ int server_init(
      * initialize eth_driver
      */
     int error = ps_interface_find(
-        &io_ops->interface_registration_ops,
-        PS_ETHERNET_INTERFACE,
-        hardware_interface_searcher,
-        NULL);
+                    &io_ops->interface_registration_ops,
+                    PS_ETHERNET_INTERFACE,
+                    hardware_interface_searcher,
+                    NULL);
 
     if (error)
     {
