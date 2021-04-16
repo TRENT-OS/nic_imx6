@@ -172,8 +172,8 @@ static void return_to_rx_buf_pool(
 
 
 //------------------------------------------------------------------------------
-static void eth_tx_complete(
-    void* iface,
+static void cb_eth_tx_complete(
+    void* cb_cookie,
     void* cookie)
 {
     client_t* client = &imx6_nic_ctx.client;
@@ -183,8 +183,8 @@ static void eth_tx_complete(
 
 
 //------------------------------------------------------------------------------
-static uintptr_t eth_allocate_rx_buf(
-    void* iface,
+static uintptr_t cb_eth_allocate_rx_buf(
+    void* cb_cookie,
     size_t buf_size,
     void** cookie)
 {
@@ -207,8 +207,8 @@ static uintptr_t eth_allocate_rx_buf(
 
 
 //------------------------------------------------------------------------------
-static void eth_rx_complete(
-    void* iface,
+static void cb_eth_rx_complete(
+    void* cb_cookie,
     unsigned int num_bufs,
     void** cookies,
     unsigned int* lens)
@@ -546,7 +546,7 @@ get_nic_configuration(void)
 
 
 //------------------------------------------------------------------------------
-static int hardware_interface_searcher(
+static int cb_eth_interface_found(
     void*  cookie,
     void*  interface_instance,
     char** properties)
@@ -567,13 +567,11 @@ static int hardware_interface_searcher(
 int server_init(
     ps_io_ops_t* io_ops)
 {
-    /* this eventually calls hardware_interface_searcher(), which will then
-     * initialize eth_driver
-     */
+    /* this calls cb_eth_interface_found() with the interface instance */
     int error = ps_interface_find(
                     &io_ops->interface_registration_ops,
                     PS_ETHERNET_INTERFACE,
-                    hardware_interface_searcher,
+                    cb_eth_interface_found,
                     NULL);
 
     if (error)
@@ -585,9 +583,9 @@ int server_init(
     struct eth_driver* eth_driver = imx6_nic_ctx.eth_driver;
 
     static const struct raw_iface_callbacks ethdriver_callbacks = {
-        .tx_complete = eth_tx_complete,
-        .rx_complete = eth_rx_complete,
-        .allocate_rx_buf = eth_allocate_rx_buf
+        .tx_complete = cb_eth_tx_complete,
+        .rx_complete = cb_eth_rx_complete,
+        .allocate_rx_buf = cb_eth_allocate_rx_buf
     };
 
     eth_driver->cb_cookie = NULL;
