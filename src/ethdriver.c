@@ -102,7 +102,7 @@ typedef struct
 
 //------------------------------------------------------------------------------
 // global variables
-imx6_nic_ctx_t imx6_nic_ctx;
+static imx6_nic_ctx_t imx6_nic_ctx;
 
 //------------------------------------------------------------------------------
 // add DMA memory to RX pool
@@ -176,7 +176,12 @@ static void cb_eth_tx_complete(
     void* cb_cookie,
     void* cookie)
 {
-    client_t* client = &imx6_nic_ctx.client;
+    assert(cb_cookie);
+    imx6_nic_ctx_t *nic_ctx = (imx6_nic_ctx_t *)cb_cookie;
+    assert(&imx6_nic_ctx == nic_ctx);
+
+    client_t* client = &(nic_ctx->client);
+
     client->pending_tx[client->num_tx] = (tx_frame_t*)cookie;
     (client->num_tx)++;
 }
@@ -188,13 +193,17 @@ static uintptr_t cb_eth_allocate_rx_buf(
     size_t buf_size,
     void** cookie)
 {
+    assert(cb_cookie);
+    imx6_nic_ctx_t *nic_ctx = (imx6_nic_ctx_t *)cb_cookie;
+    assert(&imx6_nic_ctx == nic_ctx);
+
     if (buf_size > DMA_BUF_SIZE)
     {
         LOG_ERROR("Requested size doesn't fit in buffer");
         return 0;
     }
 
-    dma_addr_t* dma = get_from_rx_buf_pool(&imx6_nic_ctx);
+    dma_addr_t* dma = get_from_rx_buf_pool(nic_ctx);
     if (!dma)
     {
         LOG_ERROR("DMA pool empty");
@@ -213,7 +222,11 @@ static void cb_eth_rx_complete(
     void** cookies,
     unsigned int* lens)
 {
-    client_t* client = &imx6_nic_ctx.client;
+    assert(cb_cookie);
+    imx6_nic_ctx_t *nic_ctx = (imx6_nic_ctx_t *)cb_cookie;
+    assert(&imx6_nic_ctx == nic_ctx);
+
+    client_t* client = &(nic_ctx->client);
 
     if (num_bufs != 1)
     {
@@ -255,7 +268,7 @@ static void cb_eth_rx_complete(
     for (unsigned int i = 0; i < num_bufs; i++)
     {
         dma_addr_t* dma = (dma_addr_t*)(cookies[i]);
-        return_to_rx_buf_pool(&imx6_nic_ctx, dma);
+        return_to_rx_buf_pool(nic_ctx, dma);
     }
 }
 
@@ -551,7 +564,16 @@ static int cb_eth_interface_found(
     void*  interface_instance,
     char** properties)
 {
-    imx6_nic_ctx.eth_driver = interface_instance;
+    assert(cookie);
+    assert(interface_instance);
+
+    imx6_nic_ctx_t *nic_ctx = (imx6_nic_ctx_t *)cookie;
+    assert(&imx6_nic_ctx == nic_ctx);
+    struct eth_driver* eth_driver = interface_instance;
+
+    /* remember the instance */
+    nic_ctx->eth_driver = eth_driver;
+
     return PS_INTERFACE_FOUND_MATCH;
 }
 
@@ -572,7 +594,7 @@ int server_init(
                     &io_ops->interface_registration_ops,
                     PS_ETHERNET_INTERFACE,
                     cb_eth_interface_found,
-                    NULL);
+                    &imx6_nic_ctx);
 
     if (error)
     {
@@ -580,19 +602,20 @@ int server_init(
         return -1;
     }
 
+    /* cb_eth_interface_found() has set this up */
     struct eth_driver* eth_driver = imx6_nic_ctx.eth_driver;
+    assert(eth_driver);
+    /* cb_cookie is passed to each of the callbacks below */
+    eth_driver->cb_cookie = &imx6_nic_ctx;
 
     static const struct raw_iface_callbacks ethdriver_callbacks = {
         .tx_complete = cb_eth_tx_complete,
         .rx_complete = cb_eth_rx_complete,
         .allocate_rx_buf = cb_eth_allocate_rx_buf
     };
-
-    eth_driver->cb_cookie = NULL;
-    eth_driver->i_cb      = ethdriver_callbacks;
+    eth_driver->i_cb = ethdriver_callbacks;
 
     client_t* client = &imx6_nic_ctx.client;
-    client->should_notify = true;
 
     /* preallocate buffers */
     LOG_INFO("allocate RX DMA buffers: %u x %zu (=%zu) byte",
@@ -656,6 +679,9 @@ int do_env_init(
     ps_io_ops_t* io_ops)
 {
     memset(&imx6_nic_ctx, 0, sizeof(imx6_nic_ctx));
+
+    imx6_nic_ctx.client.should_notify = true;
+
     return 0;
 }
 
