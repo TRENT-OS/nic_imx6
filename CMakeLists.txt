@@ -15,7 +15,6 @@ if(SDK_USE_CAMKES)
     foreach(
         comp IN ITEMS
             fdt-bind-driver
-            single-threaded
     )
         add_subdirectory(
             "${SDK_SEL4_CAMKES_GLOBAL_COMPS_DIR}/components/modules/${comp}"
