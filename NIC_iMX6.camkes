@@ -31,7 +31,7 @@ component NIC_IMX6 {
     maybe consumes Trace trace_stop;
     // end of things from single_threaded_component()
 
-    IF_OS_NIC_LOWER_INTERFACE_FIELDS(nic, NIC_DRIVER_RINGBUFFER_SIZE)
+    IF_OS_NIC_PROVIDE(nic, NIC_DRIVER_RINGBUFFER_SIZE)
 
     // optional connection to the LogServer
     maybe uses      if_OS_Logger            logServer_rpc;
