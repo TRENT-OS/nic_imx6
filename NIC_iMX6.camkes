@@ -42,7 +42,6 @@ component NIC_IMX6 {
     // optional connection to the LogServer
     maybe uses      if_OS_Logger            logServer_rpc;
     maybe dataport  Buf                     logServer_port;
-    maybe consumes  EventReady              logServer_event_ready;
 
     HARDWARE_ETHERNET_ATTRIBUTES
 
