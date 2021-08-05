@@ -358,7 +358,7 @@ OS_Error_t nic_rpc_tx_data(size_t * pLen)
     if (len < 12)
     {
         ZF_LOGW("invalid packet size %zu", len);
-        return OS_ERROR_GENERIC;
+        return OS_ERROR_INVALID_PARAMETER;
     }
 
     if (len > DMA_BUF_SIZE)
@@ -377,8 +377,8 @@ OS_Error_t nic_rpc_tx_data(size_t * pLen)
     /* drop packet if TX queue is full */
     if (0 == client->num_tx)
     {
-        LOG_ERROR("TX queue is full, dropping packet");
-        return OS_ERROR_GENERIC;
+        LOG_ERROR("TX queue is full");
+        return OS_ERROR_TRY_AGAIN;
     }
 
     (client->num_tx)--;
@@ -407,7 +407,7 @@ OS_Error_t nic_rpc_tx_data(size_t * pLen)
         /* TX failed, free internal TX buffer. Client my retry transmission */
         LOG_ERROR("Failed to enqueue tx packet, code %d", err);
         (client->num_tx)++;
-        return OS_ERROR_GENERIC;
+        return OS_ERROR_TRY_AGAIN;
     }
 
     return OS_SUCCESS;
