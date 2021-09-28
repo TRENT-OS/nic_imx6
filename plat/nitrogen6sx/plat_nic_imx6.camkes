@@ -135,10 +135,16 @@ procedure if_imx6_primary_nic {
 
 
 //------------------------------------------------------------------------------
+// Available nic configuration flags:
+// NIC_CONFIG_DROP_FRAME_CRC   don't pass the Ethernet CRC fields to the network stack.
+// NIC_CONFIG_PROMISCUOUS_MODE pass all frames received to the network stack, regardless
+//                             of the destination MAC address. WARNING, the network 
+//                             stack might not be able to cope with a high amount of 
+//                             traffic.
+
 // default attributes, can be overwritten to customize the driver
 #define INTERNAL_HARDWARE_ETHERNET_ATTRIBUTES(_id_, _phy_addr_)           \
-    attribute int    nic_flags            = NIC_CONFIG_PROMISCUOUS_MODE | \
-                                            NIC_CONFIG_DROP_FRAME_CRC;    \
+    attribute int    nic_flags            = NIC_CONFIG_DROP_FRAME_CRC;    \
     attribute int    nic_id               = _id_;                         \
     attribute int    nic_phy_address      = _phy_addr_;                   \
     attribute string MAC_address          = "\x00\x00\x00\x00\x00\x00";
