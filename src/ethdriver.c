@@ -52,11 +52,6 @@ typedef struct
 
 typedef struct
 {
-    /* this flag indicates whether we or not we need to notify the client
-     * if new data is received. We only notify once the client observes
-     * the last packet */
-    bool should_notify;
-
     /* keeps track of the head of the queue */
     unsigned int pending_rx_head;
     /* keeps track of the tail of the queue */
@@ -269,11 +264,7 @@ static void cb_eth_rx_complete(
         client->pending_rx_head =
             (client->pending_rx_head + 1) % CLIENT_RX_BUFS;
 
-        if (client->should_notify)
-        {
-            nic_event_hasData_emit();
-            client->should_notify = false;
-        }
+        nic_event_hasData_emit();
 
         return;
     }
@@ -319,7 +310,6 @@ OS_Error_t nic_rpc_rx_data(
         // and this pollutes the logs. This needs further investigation, until
         // then we don't print anything here.
         //   LOG_INFO("no RX data, client should wait for notification");
-        client->should_notify = true;
         return OS_ERROR_NO_DATA;
     }
 
@@ -335,7 +325,6 @@ OS_Error_t nic_rpc_rx_data(
     client->pending_rx_tail = (client->pending_rx_tail + 1) % CLIENT_RX_BUFS;
     if (client->pending_rx_tail == client->pending_rx_head)
     {
-        client->should_notify = true;
         *framesRemaining = 0;
     }
     else
@@ -701,8 +690,6 @@ int do_env_init(
     ps_io_ops_t* io_ops)
 {
     memset(&imx6_nic_ctx, 0, sizeof(imx6_nic_ctx));
-
-    imx6_nic_ctx.client.should_notify = true;
 
     return 0;
 }
