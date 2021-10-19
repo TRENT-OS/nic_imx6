@@ -185,7 +185,7 @@ static void cb_eth_tx_complete(
     void* cookie)
 {
     assert(cb_cookie);
-    imx6_nic_ctx_t *nic_ctx = (imx6_nic_ctx_t *)cb_cookie;
+    imx6_nic_ctx_t* nic_ctx = (imx6_nic_ctx_t*)cb_cookie;
     assert(&imx6_nic_ctx == nic_ctx);
 
     client_t* client = &(nic_ctx->client);
@@ -202,7 +202,7 @@ static uintptr_t cb_eth_allocate_rx_buf(
     void** cookie)
 {
     assert(cb_cookie);
-    imx6_nic_ctx_t *nic_ctx = (imx6_nic_ctx_t *)cb_cookie;
+    imx6_nic_ctx_t* nic_ctx = (imx6_nic_ctx_t*)cb_cookie;
     assert(&imx6_nic_ctx == nic_ctx);
 
     if (buf_size > DMA_BUF_SIZE)
@@ -231,7 +231,7 @@ static void cb_eth_rx_complete(
     unsigned int* lens)
 {
     assert(cb_cookie);
-    imx6_nic_ctx_t *nic_ctx = (imx6_nic_ctx_t *)cb_cookie;
+    imx6_nic_ctx_t* nic_ctx = (imx6_nic_ctx_t*)cb_cookie;
     assert(&imx6_nic_ctx == nic_ctx);
 
     client_t* client = &(nic_ctx->client);
@@ -241,7 +241,7 @@ static void cb_eth_rx_complete(
         LOG_ERROR("Trying to write %d buffers, can only do one", num_bufs);
     }
     else if (((client->pending_rx_head + 1) % CLIENT_RX_BUFS)
-                == client->pending_rx_tail)
+             == client->pending_rx_tail)
     {
         LOG_ERROR("RX buffer overflow");
     }
@@ -347,7 +347,7 @@ OS_Error_t nic_rpc_rx_data(
  *         OS_ERROR_TRY_AGAIN Frame couldn't be enqueued and has to be sent
  *                              again.
  */
-OS_Error_t nic_rpc_tx_data(size_t * pLen)
+OS_Error_t nic_rpc_tx_data(size_t* pLen)
 {
     if (!imx6_nic_ctx.done_init)
     {
@@ -398,11 +398,11 @@ OS_Error_t nic_rpc_tx_data(size_t * pLen)
     /* queue up transmit */
 
     int err = eth_driver->i_fn.raw_tx(
-                eth_driver,
-                1,
-                (uintptr_t*)&(tx_buf->dma.phys),
-                (unsigned int*)&len,
-                tx_buf);
+                  eth_driver,
+                  1,
+                  (uintptr_t*) & (tx_buf->dma.phys),
+                  (unsigned int*)&len,
+                  tx_buf);
 
     if (ETHIF_TX_ENQUEUED != err)
     {
@@ -473,7 +473,7 @@ int primary_nic_mdio_read(uint16_t reg)
         return -1;
     }
 
-    struct enet *enet = get_enet_from_driver(imx6_nic_ctx.eth_driver);
+    struct enet* enet = get_enet_from_driver(imx6_nic_ctx.eth_driver);
     assert(enet); // this must be set  if init way successful
 
     return enet_mdio_read(enet, IMX6_ENET2_PHY_ADDR, reg);
@@ -492,7 +492,7 @@ int primary_nic_mdio_write(uint16_t reg, uint16_t data)
         return -1;
     }
 
-    struct enet *enet = get_enet_from_driver(imx6_nic_ctx.eth_driver);
+    struct enet* enet = get_enet_from_driver(imx6_nic_ctx.eth_driver);
     assert(enet); // this must be set  if init way successful
 
     return enet_mdio_write(enet, IMX6_ENET2_PHY_ADDR, reg, data);
@@ -577,7 +577,7 @@ static int cb_eth_interface_found(
     assert(cookie);
     assert(interface_instance);
 
-    imx6_nic_ctx_t *nic_ctx = (imx6_nic_ctx_t *)cookie;
+    imx6_nic_ctx_t* nic_ctx = (imx6_nic_ctx_t*)cookie;
     assert(&imx6_nic_ctx == nic_ctx);
     struct eth_driver* eth_driver = interface_instance;
 
@@ -618,7 +618,8 @@ int server_init(
     /* cb_cookie is passed to each of the callbacks below */
     eth_driver->cb_cookie = &imx6_nic_ctx;
 
-    static const struct raw_iface_callbacks ethdriver_callbacks = {
+    static const struct raw_iface_callbacks ethdriver_callbacks =
+    {
         .tx_complete = cb_eth_tx_complete,
         .rx_complete = cb_eth_rx_complete,
         .allocate_rx_buf = cb_eth_allocate_rx_buf
@@ -629,20 +630,21 @@ int server_init(
 
     /* preallocate buffers */
     LOG_INFO("allocate RX DMA buffers: %u x %zu (=%zu) byte",
-             RX_BUFS, DMA_BUF_SIZE, RX_BUFS*DMA_BUF_SIZE);
+             RX_BUFS, DMA_BUF_SIZE, RX_BUFS * DMA_BUF_SIZE);
     for (unsigned int i = 0; i < RX_BUFS; i++)
     {
         /* Note that the parameters "cached" and "alignment" of this helper
          * function are in the opposite order than in ps_dma_alloc()
          */
         dma_addr_t dma = dma_alloc_pin(
-                            &(io_ops->dma_manager),
-                            DMA_BUF_SIZE,
-                            0, // uncached
-                            4); // alignment
-        if (!dma.phys) {
+                             &(io_ops->dma_manager),
+                             DMA_BUF_SIZE,
+                             0, // uncached
+                             4); // alignment
+        if (!dma.phys)
+        {
             LOG_ERROR("Failed to allocate DMA of size %zu for RX buffer #%d ",
-                    DMA_BUF_SIZE, i);
+                      DMA_BUF_SIZE, i);
             return -1;
         }
         memset(dma.virt, 0, DMA_BUF_SIZE);
@@ -650,20 +652,21 @@ int server_init(
     }
 
     LOG_INFO("allocate TX DMA buffers: %u x %zu (=%zu) byte",
-             CLIENT_TX_BUFS, DMA_BUF_SIZE, CLIENT_TX_BUFS*DMA_BUF_SIZE);
+             CLIENT_TX_BUFS, DMA_BUF_SIZE, CLIENT_TX_BUFS * DMA_BUF_SIZE);
     for (unsigned int i = 0; i < CLIENT_TX_BUFS; i++)
     {
         /* Note that the parameters "cached" and "alignment" of this helper
          * function are in the opposite order than in ps_dma_alloc()
          */
         dma_addr_t dma = dma_alloc_pin(
-                            &(io_ops->dma_manager),
-                            DMA_BUF_SIZE,
-                            0, // uncached
-                            4); // alignment
-        if (!dma.phys) {
+                             &(io_ops->dma_manager),
+                             DMA_BUF_SIZE,
+                             0, // uncached
+                             4); // alignment
+        if (!dma.phys)
+        {
             LOG_ERROR("Failed to allocate DMA of size %zu for TX buffer #%d ",
-                    DMA_BUF_SIZE, i);
+                      DMA_BUF_SIZE, i);
             return -1;
         }
         memset(dma.virt, 0, DMA_BUF_SIZE);
