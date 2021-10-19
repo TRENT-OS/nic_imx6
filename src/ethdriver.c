@@ -16,7 +16,6 @@
  */
 
 #include "OS_Dataport.h"
-#include "network/OS_NetworkStack.h"
 
 #include <stdbool.h>
 #include <string.h>
