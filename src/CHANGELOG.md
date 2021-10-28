@@ -11,7 +11,7 @@ the previous versions of the TRENTOS SDK or the baseline version.
 ### Fixed
 
 - Fix an issue which in certain circumstances causes the rx_buffer to be
-duplicated.
+  duplicated.
 - Add missing volatile qualifier to the `done_init` variable.
 
 ### Changed
@@ -41,4 +41,4 @@ duplicated.
 ### Added
 
 - Start development based on commit 6cc96a of
-<https://github.com/seL4/global-components/blob/master/components/Ethdriver/src/ethdriver.c>.
+  <https://github.com/seL4/global-components/blob/master/components/Ethdriver/src/ethdriver.c>.
