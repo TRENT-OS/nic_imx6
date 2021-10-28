@@ -12,6 +12,18 @@ the previous versions of the TRENTOS SDK or the baseline version.
 
 - Fix an issue which in certain circumstances causes the rx_buffer to be
 duplicated.
+- Add missing volatile qualifier to the `done_init` variable.
+
+### Changed
+
+- Format code.
+- Adapt to TRENTOS header file changes.
+- Send notifications via nic_event_hasData_emit() with every received data
+  packet.
+- Replace, in the RPC functions, OS_ERROR_GENERIC with more specific error
+  codes.
+- Adapt MAC handling to modified libethdriver config parameter handling.
+- Use uncached DMA memory.
 
 ## [1.1]
 
