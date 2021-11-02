@@ -74,11 +74,17 @@ import <global-connectors.camkes>;
 
 
 //------------------------------------------------------------------------------
-// default attributes, can be overwritten to customize the driver
+// Available nic configuration flags:
+// NIC_CONFIG_DROP_FRAME_CRC   Don't pass the Ethernet CRC fields to the network
+//                             stack.
+// NIC_CONFIG_PROMISCUOUS_MODE Pass all frames received to the network stack,
+//                             regardless of the destination MAC address.
+//                             WARNING: The network stack might not be able to
+//                             cope with a high amount of traffic.
 
+// default attributes, can be overwritten to customize the driver
 #define HARDWARE_ETHERNET_ATTRIBUTES                                      \
-    attribute int    nic_flags            = NIC_CONFIG_PROMISCUOUS_MODE | \
-                                            NIC_CONFIG_DROP_FRAME_CRC;    \
+    attribute int    nic_flags            = NIC_CONFIG_DROP_FRAME_CRC;    \
     attribute int    nic_id               = 0;                            \
     attribute int    nic_phy_address      = 0;                            \
     attribute string MAC_address          = "\x00\x00\x00\x00\x00\x00";
