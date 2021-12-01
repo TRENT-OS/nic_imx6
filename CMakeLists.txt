@@ -47,6 +47,7 @@ function(NIC_IMX6_DeclareCAmkESComponent name)
             ${NIC_IMX6_C_FLAGS}
         LIBS
             os_core_api
+            lib_debug
             ethdrivers
     )
 

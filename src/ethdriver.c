@@ -17,6 +17,8 @@
 
 #include "OS_Dataport.h"
 
+#include "lib_debug/Debug.h"
+
 #include <stdbool.h>
 #include <string.h>
 
@@ -30,7 +32,6 @@
 #include <ethdrivers/raw.h>
 #include <ethdrivers/helpers.h>
 #include <ethdrivers/plat/eth_plat.h>
-#include <sel4utils/sel4_zf_logif.h>
 
 #define RX_BUFS 256
 // Currently we support one connected client only. Therefore we can provide all
@@ -163,7 +164,7 @@ static dma_addr_t* get_from_rx_buf_pool(
 
     if (0 == nic_ctx->num_rx_bufs)
     {
-        LOG_ERROR("Invalid number of buffers");
+        Debug_LOG_ERROR("Invalid number of buffers");
         return NULL;
     }
 
@@ -214,14 +215,14 @@ static uintptr_t cb_eth_allocate_rx_buf(
 
     if (buf_size > DMA_BUF_SIZE)
     {
-        LOG_ERROR("Requested size doesn't fit in buffer");
+        Debug_LOG_ERROR("Requested size doesn't fit in buffer");
         return 0;
     }
 
     dma_addr_t* dma = get_from_rx_buf_pool(nic_ctx);
     if (!dma)
     {
-        LOG_ERROR("DMA pool empty");
+        Debug_LOG_ERROR("DMA pool empty");
         return 0;
     }
 
@@ -245,12 +246,12 @@ static void cb_eth_rx_complete(
 
     if (num_bufs != 1)
     {
-        LOG_ERROR("Trying to write %d buffers, can only do one", num_bufs);
+        Debug_LOG_ERROR("Trying to write %d buffers, can only do one", num_bufs);
     }
     else if (((client->pending_rx_head + 1) % CLIENT_RX_BUFS)
              == client->pending_rx_tail)
     {
-        LOG_ERROR("RX buffer overflow");
+        Debug_LOG_ERROR("RX buffer overflow");
     }
     else
     {
@@ -304,7 +305,7 @@ OS_Error_t nic_rpc_rx_data(
 {
     if (!imx6_nic_ctx.done_init)
     {
-        LOG_ERROR("Device not initialized");
+        Debug_LOG_ERROR("Device not initialized");
         return OS_ERROR_NOT_INITIALIZED;
     }
 
@@ -315,7 +316,7 @@ OS_Error_t nic_rpc_rx_data(
         // here only in very few cases. Practically, we see this message a lot
         // and this pollutes the logs. This needs further investigation, until
         // then we don't print anything here.
-        //   LOG_INFO("no RX data, client should wait for notification");
+        //   Debug_LOG_INFO("no RX data, client should wait for notification");
         return OS_ERROR_NO_DATA;
     }
 
@@ -358,7 +359,7 @@ OS_Error_t nic_rpc_tx_data(size_t* pLen)
 {
     if (!imx6_nic_ctx.done_init)
     {
-        LOG_ERROR("Device not initialized");
+        Debug_LOG_ERROR("Device not initialized");
         return OS_ERROR_NOT_INITIALIZED;
     }
 
@@ -366,13 +367,13 @@ OS_Error_t nic_rpc_tx_data(size_t* pLen)
     // packet must at least contain dest MAC and source MAC
     if (len < 12)
     {
-        ZF_LOGW("invalid packet size %zu", len);
+        Debug_LOG_WARNING("invalid packet size %zu", len);
         return OS_ERROR_INVALID_PARAMETER;
     }
 
     if (len > DMA_BUF_SIZE)
     {
-        ZF_LOGW(
+        Debug_LOG_WARNING(
             "truncate packet size %zu to max supported %d",
             len,
             DMA_BUF_SIZE);
@@ -386,7 +387,7 @@ OS_Error_t nic_rpc_tx_data(size_t* pLen)
     /* drop packet if TX queue is full */
     if (0 == client->num_tx)
     {
-        LOG_ERROR("TX queue is full");
+        Debug_LOG_ERROR("TX queue is full");
         return OS_ERROR_TRY_AGAIN;
     }
 
@@ -414,7 +415,7 @@ OS_Error_t nic_rpc_tx_data(size_t* pLen)
     if (ETHIF_TX_ENQUEUED != err)
     {
         /* TX failed, free internal TX buffer. Client my retry transmission */
-        LOG_ERROR("Failed to enqueue tx packet, code %d", err);
+        Debug_LOG_ERROR("Failed to enqueue tx packet, code %d", err);
         (client->num_tx)++;
         return OS_ERROR_TRY_AGAIN;
     }
@@ -460,7 +461,7 @@ int primary_nic_sync(void)
 
     if (!imx6_nic_ctx.done_init)
     {
-        LOG_ERROR("Driver init failed, RPCs will be rejected");
+        Debug_LOG_ERROR("Driver init failed, RPCs will be rejected");
         return -1;
     }
 
@@ -476,7 +477,7 @@ int primary_nic_mdio_read(uint16_t reg)
 
     if (!imx6_nic_ctx.done_init)
     {
-        LOG_ERROR("Driver init failed, reject MDIO read access RPC");
+        Debug_LOG_ERROR("Driver init failed, reject MDIO read access RPC");
         return -1;
     }
 
@@ -495,7 +496,7 @@ int primary_nic_mdio_write(uint16_t reg, uint16_t data)
 
     if (!imx6_nic_ctx.done_init)
     {
-        LOG_ERROR("Driver init failed, reject MDIO read access RPC");
+        Debug_LOG_ERROR("Driver init failed, reject MDIO read access RPC");
         return -1;
     }
 
@@ -537,7 +538,7 @@ int call_primary_nic_mdio_write(uint16_t reg, uint16_t data)
 const nic_config_t*
 get_nic_configuration(void)
 {
-    LOG_INFO(
+    Debug_LOG_INFO(
         "[i.MX6 NIC Driver '%s'] get_nic_configuration()",
         get_instance_name());
 
@@ -615,7 +616,7 @@ int server_init(
 
     if (error)
     {
-        LOG_ERROR("Unable to find an ethernet device, code %d", error);
+        Debug_LOG_ERROR("Unable to find an ethernet device, code %d", error);
         return -1;
     }
 
@@ -636,8 +637,8 @@ int server_init(
     client_t* client = &imx6_nic_ctx.client;
 
     /* preallocate buffers */
-    LOG_INFO("allocate RX DMA buffers: %u x %zu (=%zu) byte",
-             RX_BUFS, DMA_BUF_SIZE, RX_BUFS * DMA_BUF_SIZE);
+    Debug_LOG_INFO("allocate RX DMA buffers: %u x %zu (=%zu) byte",
+                   RX_BUFS, DMA_BUF_SIZE, RX_BUFS * DMA_BUF_SIZE);
     for (unsigned int i = 0; i < RX_BUFS; i++)
     {
         /* Note that the parameters "cached" and "alignment" of this helper
@@ -650,16 +651,17 @@ int server_init(
                              4); // alignment
         if (!dma.phys)
         {
-            LOG_ERROR("Failed to allocate DMA of size %zu for RX buffer #%d ",
-                      DMA_BUF_SIZE, i);
+            Debug_LOG_ERROR(
+                "Failed to allocate DMA of size %zu for RX buffer #%d ",
+                DMA_BUF_SIZE, i);
             return -1;
         }
         memset(dma.virt, 0, DMA_BUF_SIZE);
         add_to_rx_buf_pool(&imx6_nic_ctx, &dma);
     }
 
-    LOG_INFO("allocate TX DMA buffers: %u x %zu (=%zu) byte",
-             CLIENT_TX_BUFS, DMA_BUF_SIZE, CLIENT_TX_BUFS * DMA_BUF_SIZE);
+    Debug_LOG_INFO("allocate TX DMA buffers: %u x %zu (=%zu) byte",
+                   CLIENT_TX_BUFS, DMA_BUF_SIZE, CLIENT_TX_BUFS * DMA_BUF_SIZE);
     for (unsigned int i = 0; i < CLIENT_TX_BUFS; i++)
     {
         /* Note that the parameters "cached" and "alignment" of this helper
@@ -672,8 +674,9 @@ int server_init(
                              4); // alignment
         if (!dma.phys)
         {
-            LOG_ERROR("Failed to allocate DMA of size %zu for TX buffer #%d ",
-                      DMA_BUF_SIZE, i);
+            Debug_LOG_ERROR(
+                "Failed to allocate DMA of size %zu for TX buffer #%d ",
+                DMA_BUF_SIZE, i);
             return -1;
         }
         memset(dma.virt, 0, DMA_BUF_SIZE);
