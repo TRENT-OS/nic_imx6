@@ -221,7 +221,7 @@ static uintptr_t cb_eth_allocate_rx_buf(
     dma_addr_t* dma = get_from_rx_buf_pool(nic_ctx);
     if (!dma)
     {
-        Debug_LOG_ERROR("DMA pool empty");
+        Debug_LOG_TRACE("DMA pool empty");
         return 0;
     }
 
