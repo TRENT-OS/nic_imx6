@@ -164,7 +164,6 @@ static dma_addr_t* get_from_rx_buf_pool(
 
     if (0 == nic_ctx->num_rx_bufs)
     {
-        Debug_LOG_ERROR("Invalid number of buffers");
         return NULL;
     }
 
