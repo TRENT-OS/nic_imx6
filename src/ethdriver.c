@@ -311,11 +311,11 @@ OS_Error_t nic_rpc_rx_data(
     client_t* client = &imx6_nic_ctx.client;
     if (client->pending_rx_head == client->pending_rx_tail)
     {
-        // Ideally, the network stack does not poll the driver and we end up
-        // here only in very few cases. Practically, we see this message a lot
-        // and this pollutes the logs. This needs further investigation, until
-        // then we don't print anything here.
-        //   Debug_LOG_INFO("no RX data, client should wait for notification");
+        // TODO: Ideally, the network stack does not poll the driver and we end
+        // up here only in very few cases. Practically, we see this message a
+        // lot and this pollutes the logs. This needs further investigation,
+        // until then we don't print anything here.
+        // Debug_LOG_INFO("no RX data, client should wait for notification");
         return OS_ERROR_NO_DATA;
     }
 
