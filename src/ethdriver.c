@@ -32,10 +32,17 @@
 #include <ethdrivers/plat/eth_plat.h>
 #include <sel4utils/sel4_zf_logif.h>
 
-#define RX_BUFS          256
-#define CLIENT_RX_BUFS   128
-#define CLIENT_TX_BUFS   128
-#define DMA_BUF_SIZE    2048
+#define RX_BUFS 256
+// Currently we support one connected client only. Therefore we can provide all
+// available RX buffers to this one client. As the CLIENT_RX_BUFS value is used
+// to manage the cyclic queue of RX buffers and the current logic of the
+// implementation defines the empty state of the circular buffer as head == tail
+// and the full state as (CLIENT_RX_BUFS-1), we need to add an additional frame
+// here so that we do not end up with a mismatch that would lead to frames
+// getting lost.
+#define CLIENT_RX_BUFS (RX_BUFS+1)
+#define CLIENT_TX_BUFS 128
+#define DMA_BUF_SIZE   2048
 
 typedef struct
 {
