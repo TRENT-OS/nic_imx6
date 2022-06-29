@@ -11,16 +11,10 @@ cmake_minimum_required(VERSION 3.17)
 
 if(SDK_USE_CAMKES)
 
-    # cherry pick global components
-    foreach(
-        comp IN ITEMS
-            fdt-bind-driver
-            single-threaded
+    os_sdk_import_from_global_components(
+        "components/modules/fdt-bind-driver"
+        "components/modules/single-threaded"
     )
-        add_subdirectory(
-            "${SDK_SEL4_CAMKES_GLOBAL_COMPS_DIR}/components/modules/${comp}"
-            "sel4_global_components/${comp}")
-    endforeach()
 
 endif()  # SDK_USE_CAMKES
 
